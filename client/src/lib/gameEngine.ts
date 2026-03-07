@@ -11,10 +11,12 @@ import {
   shuffle,
   getTotalZaptieBoyna,
   getGroupStrength,
+  getGroupContributions,
   canFormGroupByContribution,
   canFormGroupByColor,
   getUpgradeCost,
   getNextStatValue,
+  getMaxReachableStatValue,
   ALL_CARDS,
 } from './gameData';
 
@@ -113,20 +115,26 @@ function handleZaptieEncounter(state: GameState, zaptieCard: Card): GameState {
     };
   } else {
     // Already revealed — check if defeated
-    const totalZaptieBoyna = getTotalZaptieBoyna(state.field, state.fieldFaceUp) + (zaptieCard.strength ?? 0);
+    const totalZaptieBoyna = getTotalZaptieBoyna(state.field, state.fieldFaceUp);
     const playerBoyna = player.stats.boyna;
 
     if (totalZaptieBoyna > playerBoyna) {
-      // Committee defeated
+      // Committee defeated — clear hand, remove all face-up Zaптie from field, flip remaining face-up cards down
       const players = state.players.map((p, i) =>
         i === state.currentPlayerIndex ? { ...p, hand: [], isRevealed: true } : p
       );
-      // Clear all face-up field cards
-      const newFieldFaceUp = state.fieldFaceUp.map(() => false);
-      
+      // Remove face-up Zaптie cards from field entirely, flip other face-up cards face-down
+      const newField = state.field.filter((c, i) => !(state.fieldFaceUp[i] && c.type === 'zaptie'));
+      const keptIndices = state.field.reduce<number[]>((acc, c, i) => {
+        if (!(state.fieldFaceUp[i] && c.type === 'zaptie')) acc.push(i);
+        return acc;
+      }, []);
+      const newFieldFaceUp = keptIndices.map(() => false);
+
       return {
         ...state,
         players,
+        field: newField,
         fieldFaceUp: newFieldFaceUp,
         actionsRemaining: 0,
         canFormGroup: false,
@@ -175,27 +183,27 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if (state.turnStep !== 'recruiting' || state.actionsRemaining <= 0) return state;
       const { fieldIndex } = action;
       if (state.fieldFaceUp[fieldIndex]) return state; // already face-up
-      
+
       const card = state.field[fieldIndex];
       const newFieldFaceUp = [...state.fieldFaceUp];
       newFieldFaceUp[fieldIndex] = true;
 
-      if (card.type === 'zaptie') {
-        const newState = {
-          ...state,
-          field: state.field,
-          fieldFaceUp: newFieldFaceUp,
-          actionsUsed: state.actionsUsed + 1,
-        };
-        return handleZaptieEncounter(newState, card);
-      }
+      const scoutActionsRemaining = state.actionsRemaining - 1;
+      const scoutActionsUsed = state.actionsUsed + 1;
+      const scoutNextStep = scoutActionsRemaining <= 0
+        ? (player.hand.length <= player.stats.nabor ? 'forming' : 'selection')
+        : 'recruiting';
+      const scoutMessage = card.type === 'zaptie'
+        ? `Проучване: открито Заптие (сила ${card.strength})!`
+        : `Проучване: открита карта "${card.name}"`;
 
       return {
         ...state,
         fieldFaceUp: newFieldFaceUp,
-        actionsRemaining: state.actionsRemaining - 1,
-        actionsUsed: state.actionsUsed + 1,
-        message: `Проучване: открита карта "${card.name}"`,
+        actionsRemaining: scoutActionsRemaining,
+        actionsUsed: scoutActionsUsed,
+        turnStep: scoutNextStep,
+        message: scoutMessage,
       };
     }
 
@@ -235,7 +243,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
     case 'RISKY_RECRUIT': {
       if (state.turnStep !== 'recruiting' || state.actionsRemaining <= 0) return state;
-      if (state.deck.length === 0) return state;
+      if (state.deck.length === 0) {
+        return { ...state, message: 'Тестето е изчерпано! Не може рисковано вербуване.' };
+      }
 
       const card = state.deck[0];
       const newDeck = state.deck.slice(1);
@@ -276,7 +286,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
     case 'SKIP_ACTIONS': {
       if (state.turnStep !== 'recruiting') return state;
-      // If no actions used and hand is already within nabor limit, skip to forming
+      if (state.actionsUsed === 0) return state; // must take at least 1 action first
       const currentPlayer = state.players[state.currentPlayerIndex];
       const nextStep = currentPlayer.hand.length <= currentPlayer.stats.nabor ? 'forming' : 'selection';
       return {
@@ -289,6 +299,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
     case 'PROCEED_TO_FORMING': {
       if (state.turnStep !== 'selection') return state;
+      if (!state.canFormGroup) {
+        return advanceTurn({ ...state, turnStep: 'end' });
+      }
       return {
         ...state,
         turnStep: 'forming',
@@ -306,12 +319,15 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const newHandAfterDiscard = newHand;
       const discardedPlayer = players[state.currentPlayerIndex];
       const autoAdvance = newHandAfterDiscard.length <= discardedPlayer.stats.nabor;
+      const afterDiscardStep = autoAdvance
+        ? (state.canFormGroup ? 'forming' : 'end')
+        : 'selection';
       return {
         ...state,
         players,
-        turnStep: autoAdvance ? 'forming' : 'selection',
+        turnStep: afterDiscardStep,
         usedCards: discarded ? [...state.usedCards, discarded] : state.usedCards,
-        message: autoAdvance
+        message: autoAdvance && state.canFormGroup
           ? `Изчистена карта: "${discarded?.name}". Сформиране на групи`
           : `Изчистена карта: "${discarded?.name}"`,
       };
@@ -338,13 +354,15 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       const groupStrength = getGroupStrength(hayduti);
       const currentStatValue = player.stats[statType];
-      const nextValue = getNextStatValue(currentStatValue);
-      
-      if (!nextValue) return { ...state, message: 'Показателят е вече на максимум!' };
-      
-      const cost = getUpgradeCost(nextValue);
-      if (groupStrength < cost) {
-        return { ...state, message: `Недостатъчна сила! Нужна: ${cost}, имаш: ${groupStrength}` };
+
+      if (getNextStatValue(currentStatValue) === null) {
+        return { ...state, message: 'Показателят е вече на максимум!' };
+      }
+
+      const targetValue = getMaxReachableStatValue(currentStatValue, groupStrength);
+      if (!targetValue) {
+        const minCost = getUpgradeCost(getNextStatValue(currentStatValue)!);
+        return { ...state, message: `Недостатъчна сила! Нужна: ${minCost}, имаш: ${groupStrength}` };
       }
 
       // Validate group formation
@@ -355,11 +373,19 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         return { ...state, message: 'Невалидна група! Хайдутите трябва да са с еднакъв принос или цвят.' };
       }
 
-      // Improve stat
-      const newStats = { ...player.stats, [statType]: nextValue };
+      // When formed by color, statType must match a contribution present in the group
+      if (!byContribution && byColor) {
+        const groupContributions = getGroupContributions(hayduti);
+        if (!groupContributions.includes(statType)) {
+          return { ...state, message: 'Избраният показател не отговаря на принос на нито една карта в групата.' };
+        }
+      }
+
+      // Improve stat to max reachable level
+      const newStats = { ...player.stats, [statType]: targetValue };
       const newHand = player.hand.filter(c => !state.selectedCards.includes(c.id) || c.type !== 'haydut');
       const discarded = player.hand.filter(c => state.selectedCards.includes(c.id) && c.type === 'haydut');
-      
+
       const players = state.players.map((p, i) =>
         i === state.currentPlayerIndex ? { ...p, stats: newStats, hand: newHand } : p
       );
@@ -370,7 +396,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         usedCards: [...state.usedCards, ...discarded],
         selectedCards: [],
         canFormGroup: false,
-        message: `Подобрен показател "${statType}" до ${nextValue}!`,
+        message: `Подобрен показател "${statType}" до ${targetValue}!`,
       };
     }
 
@@ -464,14 +490,19 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     }
 
     case 'ACKNOWLEDGE_ZAPTIE': {
-      // After acknowledging zaptie, move to selection or forming step
+      // After Заптие from Рисковано вербуване: allow discard if needed, but NO group forming
       const zapPlayer = state.players[state.currentPlayerIndex];
-      const zapNextStep = zapPlayer.hand.length <= zapPlayer.stats.nabor ? 'forming' : 'selection';
+      const needsSelection = zapPlayer.hand.length > zapPlayer.stats.nabor;
+      if (!needsSelection) {
+        // No excess cards — end turn immediately, skip forming
+        return advanceTurn({ ...state, zaptieTrigger: undefined });
+      }
       return {
         ...state,
         zaptieTrigger: undefined,
-        turnStep: zapNextStep,
-        message: zapNextStep === 'forming' ? 'Сформиране на групи' : 'Подбор на революционери',
+        turnStep: 'selection',
+        canFormGroup: false,
+        message: 'Подбор на революционери',
       };
     }
 

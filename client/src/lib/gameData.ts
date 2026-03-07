@@ -319,6 +319,16 @@ export function getUpgradeCost(targetValue: number): number {
   return STAT_UPGRADE_COSTS[targetValue] ?? 999;
 }
 
+export function getMaxReachableStatValue(current: number, groupStrength: number): number | null {
+  let max: number | null = null;
+  for (const level of STAT_TRACK) {
+    if (level > current && getUpgradeCost(level) <= groupStrength) {
+      max = level;
+    }
+  }
+  return max;
+}
+
 export function getTotalZaptieBoyna(fieldCards: Card[], fieldFaceUp: boolean[]): number {
   return fieldCards.reduce((sum, card, i) => {
     if (fieldFaceUp[i] && card.type === 'zaptie') {
@@ -330,7 +340,7 @@ export function getTotalZaptieBoyna(fieldCards: Card[], fieldFaceUp: boolean[]):
 
 export function canFormGroupByContribution(cards: Card[]): ContributionType | null {
   const hayduti = cards.filter(c => c.type === 'haydut');
-  if (hayduti.length === 0) return null;
+  if (hayduti.length < 2) return null; // minimum 2 Хайдути required
   const contributions = Array.from(new Set(hayduti.map(c => c.contribution)));
   if (contributions.length === 1 && contributions[0]) return contributions[0];
   return null;
@@ -338,7 +348,7 @@ export function canFormGroupByContribution(cards: Card[]): ContributionType | nu
 
 export function canFormGroupByColor(cards: Card[]): CardColor | null {
   const hayduti = cards.filter(c => c.type === 'haydut');
-  if (hayduti.length === 0) return null;
+  if (hayduti.length < 2) return null; // minimum 2 Хайдути required
   const colors = Array.from(new Set(hayduti.map(c => c.color)));
   if (colors.length === 1 && colors[0]) return colors[0];
   return null;
@@ -348,6 +358,13 @@ export function getGroupStrength(cards: Card[]): number {
   return cards
     .filter(c => c.type === 'haydut')
     .reduce((sum, c) => sum + (c.strength ?? 0), 0);
+}
+
+export function getGroupContributions(cards: Card[]): ContributionType[] {
+  const contribs = cards
+    .filter(c => c.type === 'haydut' && c.contribution)
+    .map(c => c.contribution as ContributionType);
+  return Array.from(new Set(contribs));
 }
 
 export function contributionLabel(type: ContributionType): string {
@@ -422,11 +439,9 @@ export function createInitialGameState(
 ): GameState {
   // Build deck: all non-silver-diamond and non-gold-diamond cards
   const regularCards = ALL_CARDS.filter(c => !c.silverDiamond && !c.goldDiamond);
-  const silverCards = ALL_CARDS.filter(c => c.silverDiamond && !c.goldDiamond);
-  const goldCards = ALL_CARDS.filter(c => c.goldDiamond);
 
-  // Initial used cards pile: silver diamond cards face-up
-  const usedCards = [...silverCards];
+  // Silver and gold cards enter the game on deck rotations 1 and 2 respectively
+  const usedCards: Card[] = [];
   
   // Shuffle regular cards for deck
   const deck = shuffle(regularCards);

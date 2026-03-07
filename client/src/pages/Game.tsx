@@ -20,6 +20,8 @@ import {
   getGroupStrength,
   getUpgradeCost,
   getNextStatValue,
+  getMaxReachableStatValue,
+  getGroupContributions,
   STAT_UPGRADE_COSTS,
 } from '@/lib/gameData';
 import { gameReducer } from '@/lib/gameEngine';
@@ -399,6 +401,7 @@ export default function Game() {
   const groupByColor = canFormGroupByColor(selectedHayduti);
   const isValidGroup = selectedHayduti.length > 0 && (groupByContrib !== null || groupByColor !== null);
   const groupStrength = getGroupStrength(selectedHayduti);
+  const groupContributions = getGroupContributions(selectedHayduti);
 
   // Cards that can be raised (on field face-up or in hand)
   const raisableFromField = state.field.filter((c, i) =>
@@ -492,7 +495,7 @@ export default function Game() {
               </div>
             </div>
             <div className="ml-auto flex gap-2">
-              {state.turnStep === 'recruiting' && (
+              {state.turnStep === 'recruiting' && state.actionsUsed > 0 && (
                 <button
                   onClick={() => dispatch({ type: 'SKIP_ACTIONS' })}
                   className="px-3 py-1.5 rounded-lg font-source text-xs border transition-all hover:opacity-80"
@@ -506,7 +509,7 @@ export default function Game() {
                   onClick={() => dispatch({ type: 'PROCEED_TO_FORMING' })}
                   className="btn-action px-3 py-1.5 rounded-lg text-xs"
                 >
-                  Напред →
+                  {state.canFormGroup ? 'Напред →' : 'Край на хода →'}
                 </button>
               )}
               {state.turnStep === 'forming' && (
@@ -577,7 +580,7 @@ export default function Game() {
               <h3 className="font-cinzel text-sm font-semibold tracking-wider" style={{ color: 'oklch(0.60 0.05 78)' }}>
                 ПОЛЕ ({state.field.length} карти)
               </h3>
-              {canDoActions && (
+              {canDoActions && state.deck.length > 0 && (
                 <button
                   onClick={() => dispatch({ type: 'RISKY_RECRUIT' })}
                   className="px-3 py-1.5 rounded-lg font-cinzel text-xs font-semibold border transition-all"
@@ -728,9 +731,10 @@ export default function Game() {
                 {(['nabor', 'deynost', 'boyna'] as ContributionType[]).map(stat => {
                   const currentVal = player.stats[stat];
                   const nextVal = getNextStatValue(currentVal);
-                  const cost = nextVal ? getUpgradeCost(nextVal) : 999;
-                  const canImprove = nextVal !== null && groupStrength >= cost &&
-                    (groupByContrib === stat || groupByColor !== null);
+                  const maxVal = getMaxReachableStatValue(currentVal, groupStrength);
+                  const minCost = nextVal ? getUpgradeCost(nextVal) : 999;
+                  const canImprove = maxVal !== null &&
+                    (groupByContrib === stat || (groupByColor !== null && groupContributions.includes(stat)));
 
                   return (
                     <button
@@ -750,7 +754,12 @@ export default function Game() {
                       }}
                     >
                       {stat === 'nabor' ? '🎴' : stat === 'deynost' ? '⚡' : '⚔️'} {contributionLabel(stat)}
-                      {nextVal && <span className="ml-1 opacity-70">{currentVal}→{nextVal} (нужна: {cost})</span>}
+                      {maxVal
+                        ? <span className="ml-1 opacity-70">{currentVal}→{maxVal} (нужна: {getUpgradeCost(maxVal)})</span>
+                        : nextVal
+                          ? <span className="ml-1 opacity-70">(нужна: {minCost})</span>
+                          : <span className="ml-1 opacity-70">(макс.)</span>
+                      }
                     </button>
                   );
                 })}
