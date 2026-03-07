@@ -219,15 +219,14 @@ function handleZaptieEncounter(state: GameState, zaptieCard: Card): GameState {
       };
     }
 
-    // Normal reveal
+    // Normal reveal — keep remaining actions so player can continue their turn
     const players = state.players.map((p, i) =>
       i === state.currentPlayerIndex ? { ...p, isRevealed: true } : p
     );
     return {
       ...state,
       players,
-      actionsRemaining: 0,
-      canFormGroup: false,
+      // Do NOT zero out actionsRemaining — player continues their turn after acknowledging
       zaptieTrigger: { wasSecret: true, isDefeated: false, zaptieCards: [zaptieCard] },
       message: `Заптие! Комитетът на ${player.name} е разкрит!`,
     };
@@ -288,11 +287,10 @@ function handleZaptieEncounter(state: GameState, zaptieCard: Card): GameState {
           : `Заптие! Комитетът на ${player.name} е разбит! Загубени всички карти.`,
       };
     } else {
-      // Already revealed but not defeated
+      // Already revealed but not defeated — keep remaining actions so player continues
       return {
         ...state,
-        actionsRemaining: 0,
-        canFormGroup: false,
+        // Do NOT zero out actionsRemaining — player continues their turn after acknowledging
         zaptieTrigger: { wasSecret: false, isDefeated: false, zaptieCards: [zaptieCard] },
         message: `Заптие! Комитетът на ${player.name} вече е разкрит. Продължаваш.`,
       };
@@ -437,12 +435,15 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if (card.type === 'zaptie') {
         const newField = [...state.field, card];
         const newFieldFaceUp = [...state.fieldFaceUp, true];
+        const riskyZaptieActionsRemaining = state.actionsRemaining - 1;
         const newState = {
           ...state,
           deck: newDeck,
           field: newField,
           fieldFaceUp: newFieldFaceUp,
           actionsUsed: state.actionsUsed + 1,
+          actionsRemaining: riskyZaptieActionsRemaining,
+          // turnStep will be set by handleZaptieEncounter or ACKNOWLEDGE_ZAPTIE
         };
         return handleZaptieEncounter(newState, card);
       }
@@ -721,35 +722,39 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     // ── ACKNOWLEDGE ZAПТИЕ ─────────────────────────────────────
     case 'ACKNOWLEDGE_ZAPTIE': {
       const zapPlayer = state.players[state.currentPlayerIndex];
-      // Дядо Ильо: +2 hand limit this turn
-      const effectiveNabor = zapPlayer.stats.nabor + (zapPlayer.dyadoIlyoActive ? 2 : 0);
-      const needsSelection = zapPlayer.hand.length > effectiveNabor;
+      const zaptie = state.zaptieTrigger;
+      const isDefeated = zaptie?.isDefeated ?? false;
 
-      // If Петко Войвода triggered: player needs to pick 2 cards to keep (handled in selection step)
-      if (state.zaptieTrigger?.petkoVoyTriggered) {
-        // Player still has their hand — they need to discard down to 2 cards
+      // ── DEFEAT cases ──────────────────────────────────────────
+      // On defeat, always go through selection step first (discard step)
+      // so the player can see what happened before the turn ends.
+
+      // Петко Войвода triggered: player keeps 2 cards
+      if (zaptie?.petkoVoyTriggered) {
         return {
           ...state,
           zaptieTrigger: undefined,
           turnStep: 'selection',
+          actionsRemaining: 0,
           canFormGroup: false,
           message: `Петко Войвода: запазваш 2 карти по избор. Изхвърли останалите.`,
         };
       }
 
-      // If Поп Харитон triggered: player can form 1 group before discarding
-      if (state.zaptieTrigger?.popHaritonTriggered) {
+      // Поп Харитон triggered: player forms 1 group before discarding
+      if (zaptie?.popHaritonTriggered) {
         return {
           ...state,
           zaptieTrigger: undefined,
           turnStep: 'forming',
+          actionsRemaining: 0,
           canFormGroup: true,
           popHaritonForming: true,
           message: `Поп Харитон: можеш да сформираш група преди да изхвърлиш картите.`,
         };
       }
 
-      // Check for Панайот Хитов pending
+      // Панайот Хитов pending (defeat)
       if (state.panayotTrigger) {
         return {
           ...state,
@@ -758,15 +763,49 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         };
       }
 
-      if (!needsSelection) {
-        return advanceTurn({ ...state, zaptieTrigger: undefined });
+      // Regular defeat (no special traits) — go to selection so player sees the state, then end turn
+      if (isDefeated) {
+        // Hand was already cleared in handleZaptieEncounter; go to selection (empty hand) then end turn
+        return {
+          ...state,
+          zaptieTrigger: undefined,
+          turnStep: 'selection',
+          actionsRemaining: 0,
+          canFormGroup: false,
+          message: `Комитетът е разбит! Всички карти са изгубени. Натиснете "Продължи" за край на хода.`,
+        };
       }
+
+      // ── NON-DEFEAT cases ──────────────────────────────────────
+      // Committee was only revealed (wasSecret) OR already revealed but survived.
+      // Player should CONTINUE their turn from where they left off.
+      // actionsRemaining was preserved in handleZaptieEncounter for these cases.
+
+      // Дядо Ильо: +2 hand limit active — check if hand still over limit
+      const effectiveNabor = zapPlayer.stats.nabor + (zapPlayer.dyadoIlyoActive ? 2 : 0);
+      const needsSelection = zapPlayer.hand.length > effectiveNabor;
+
+      if (needsSelection) {
+        // Over hand limit — go to selection first, then back to recruiting
+        return {
+          ...state,
+          zaptieTrigger: undefined,
+          turnStep: 'selection',
+          canFormGroup: false,
+          message: 'Подбор на революционери',
+        };
+      }
+
+      // Hand is within limit — resume turn
+      // If there are still actions left, go back to recruiting; otherwise go to selection
+      const resumeStep: TurnStep = state.actionsRemaining > 0 ? 'recruiting' : 'selection';
       return {
         ...state,
         zaptieTrigger: undefined,
-        turnStep: 'selection',
-        canFormGroup: false,
-        message: 'Подбор на революционери',
+        turnStep: resumeStep,
+        message: resumeStep === 'recruiting'
+          ? `Комитетът е разкрит. Продължаваш с останалите ${state.actionsRemaining} действия.`
+          : 'Подбор на революционери',
       };
     }
 
