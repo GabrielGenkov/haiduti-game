@@ -8,6 +8,7 @@ import {
   Card,
   Player,
   ContributionType,
+  TurnStep,
   shuffle,
   getTotalZaptieBoyna,
   getGroupStrength,
@@ -190,14 +191,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       const scoutActionsRemaining = state.actionsRemaining - 1;
       const scoutActionsUsed = state.actionsUsed + 1;
-      const scoutNextStep = scoutActionsRemaining <= 0
-        ? (player.hand.length <= player.stats.nabor ? 'forming' : 'selection')
-        : 'recruiting';
+      const scoutNextStep: TurnStep = scoutActionsRemaining <= 0 ? 'selection' : 'recruiting';
       const scoutMessage = card.type === 'zaptie'
         ? `Проучване: открито Заптие (сила ${card.strength})!`
         : `Проучване: открита карта "${card.name}"`;
 
-      return {
+      const scoutState = {
         ...state,
         fieldFaceUp: newFieldFaceUp,
         actionsRemaining: scoutActionsRemaining,
@@ -205,6 +204,28 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         turnStep: scoutNextStep,
         message: scoutMessage,
       };
+
+      if (card.type === 'zaptie') {
+        if (!player.isRevealed) {
+          // Reveal committee silently — player keeps remaining actions
+          const players = scoutState.players.map((p, i) =>
+            i === state.currentPlayerIndex ? { ...p, isRevealed: true } : p
+          );
+          return {
+            ...scoutState,
+            players,
+            message: `Проучване: открито Заптие (сила ${card.strength})! Комитетът е разкрит!`,
+          };
+        } else {
+          // Already Разкрит — check defeat
+          const totalZaptieBoyna = getTotalZaptieBoyna(scoutState.field, scoutState.fieldFaceUp);
+          if (totalZaptieBoyna > player.stats.boyna) {
+            return handleZaptieEncounter(scoutState, card);
+          }
+        }
+      }
+
+      return scoutState;
     }
 
     case 'SAFE_RECRUIT': {
@@ -225,10 +246,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       const newActionsRemaining = state.actionsRemaining - 1;
       const newActionsUsed = state.actionsUsed + 1;
-      // Auto-advance to selection if actions exhausted
-      const newTurnStep = newActionsRemaining <= 0
-        ? (newHand.length <= players[state.currentPlayerIndex].stats.nabor ? 'forming' : 'selection')
-        : 'recruiting';
+      const newTurnStep: TurnStep = newActionsRemaining <= 0 ? 'selection' : 'recruiting';
       return {
         ...state,
         field: newField,
@@ -270,9 +288,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       );
 
       const riskyActionsRemaining = state.actionsRemaining - 1;
-      const riskyNextStep = riskyActionsRemaining <= 0
-        ? (newHand.length <= players[state.currentPlayerIndex].stats.nabor ? 'forming' : 'selection')
-        : 'recruiting';
+      const riskyNextStep: TurnStep = riskyActionsRemaining <= 0 ? 'selection' : 'recruiting';
       return {
         ...state,
         deck: newDeck,
@@ -287,13 +303,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     case 'SKIP_ACTIONS': {
       if (state.turnStep !== 'recruiting') return state;
       if (state.actionsUsed === 0) return state; // must take at least 1 action first
-      const currentPlayer = state.players[state.currentPlayerIndex];
-      const nextStep = currentPlayer.hand.length <= currentPlayer.stats.nabor ? 'forming' : 'selection';
       return {
         ...state,
-        turnStep: nextStep,
+        turnStep: 'selection',
         actionsRemaining: 0,
-        message: nextStep === 'forming' ? 'Сформиране на групи' : 'Подбор на революционери',
+        message: 'Подбор на революционери',
       };
     }
 
@@ -316,20 +330,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const players = state.players.map((p, i) =>
         i === state.currentPlayerIndex ? { ...p, hand: newHand } : p
       );
-      const newHandAfterDiscard = newHand;
-      const discardedPlayer = players[state.currentPlayerIndex];
-      const autoAdvance = newHandAfterDiscard.length <= discardedPlayer.stats.nabor;
-      const afterDiscardStep = autoAdvance
-        ? (state.canFormGroup ? 'forming' : 'end')
-        : 'selection';
       return {
         ...state,
         players,
-        turnStep: afterDiscardStep,
+        turnStep: 'selection',
         usedCards: discarded ? [...state.usedCards, discarded] : state.usedCards,
-        message: autoAdvance && state.canFormGroup
-          ? `Изчистена карта: "${discarded?.name}". Сформиране на групи`
-          : `Изчистена карта: "${discarded?.name}"`,
+        message: `Изчистена карта: "${discarded?.name}"`,
       };
     }
 
