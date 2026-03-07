@@ -158,11 +158,10 @@ export const VOYVODA_CARDS: Card[] = [
 ];
 
 // Deyets cards: 15 named historical figures
-// Per a.txt: 13 regular (initial deck) + 0 silver + 2 goldDiamond (Васил Левски, Христо Ботев)
 export const DEYETS_CARDS: Card[] = [
   {
     id: 'dey_vasil', type: 'deyets', name: 'Васил Левски',
-    cost: 8, chetaPoints: 0, strength: 2, contribution: 'nabor',
+    cost: 14, chetaPoints: 0, strength: 2, contribution: 'nabor',
     effect: 'При рисковано вербуване: ако се срещне Заптие, ходът не се прекъсва.',
     goldDiamond: true,
   },
@@ -180,24 +179,24 @@ export const DEYETS_CARDS: Card[] = [
   },
   {
     id: 'dey_hadzhi', type: 'deyets', name: 'Хаджи Димитър',
-    cost: 7, chetaPoints: 0, strength: 3, contribution: 'boyna',
+    cost: 9, chetaPoints: 0, strength: 3, contribution: 'boyna',
     effect: 'Премахни едно открито Заптие от полето. На негово място — неоткрита карта от тестето.',
   },
   {
     id: 'dey_filip', type: 'deyets', name: 'Филип Тотю',
-    cost: 5, chetaPoints: 0, strength: 2, contribution: 'deynost',
+    cost: 6, chetaPoints: 0, strength: 2, contribution: 'deynost',
     effect: 'Добавя +1 сила при сформиране на група с принос Дейност.',
     groupBonus: '+1 Дейност при сформиране',
   },
   {
     id: 'dey_evlogi', type: 'deyets', name: 'Евлоги и Христо Георгиеви',
-    cost: 7, chetaPoints: 2, strength: 2, contribution: 'nabor',
+    cost: 9, chetaPoints: 2, strength: 2, contribution: 'nabor',
     effect: 'Добавя +1 сила при сформиране на всяка група.',
     groupBonus: '+1 при сформиране',
   },
   {
     id: 'dey_benkovski', type: 'deyets', name: 'Георги Бенковски',
-    cost: 7, chetaPoints: 2, strength: 3, contribution: 'boyna',
+    cost: 9, chetaPoints: 2, strength: 3, contribution: 'boyna',
     effect: 'При определена сила на Заптиетата: може да ги отстрани.',
   },
   {
@@ -208,13 +207,13 @@ export const DEYETS_CARDS: Card[] = [
   },
   {
     id: 'dey_rakowski', type: 'deyets', name: 'Георги Раковски',
-    cost: 8, chetaPoints: 2, strength: 3, contribution: 'boyna',
+    cost: 9, chetaPoints: 2, strength: 3, contribution: 'boyna',
     effect: 'Добавя +1 сила при сформиране на група с принос Набор.',
     groupBonus: '+1 Набор при сформиране',
   },
   {
     id: 'dey_pop', type: 'deyets', name: 'Поп Харитон',
-    cost: 5, chetaPoints: 0, strength: 2, contribution: 'nabor',
+    cost: 6, chetaPoints: 0, strength: 2, contribution: 'nabor',
     effect: 'При разбит комитет след рисковано вербуване: влиза в сила.',
   },
   {
@@ -225,23 +224,23 @@ export const DEYETS_CARDS: Card[] = [
   },
   {
     id: 'dey_petko_voy', type: 'deyets', name: 'Петко Войвода',
-    cost: 6, chetaPoints: 0, strength: 2, contribution: 'boyna',
+    cost: 9, chetaPoints: 0, strength: 2, contribution: 'boyna',
     effect: 'При разбит комитет: запазваш картите в ръка.',
   },
   {
     id: 'dey_panayot', type: 'deyets', name: 'Панайот Хитов',
-    cost: 6, chetaPoints: 2, strength: 2, contribution: 'deynost',
+    cost: 9, chetaPoints: 2, strength: 2, contribution: 'deynost',
     effect: 'Ако е издигнат от друг играч и са останали карти за чистене.',
   },
   {
     id: 'dey_stefan', type: 'deyets', name: 'Стефан Каража',
-    cost: 6, chetaPoints: 0, strength: 3, contribution: 'boyna',
+    cost: 9, chetaPoints: 0, strength: 3, contribution: 'boyna',
     effect: 'Добавя сила при сформиране на група с принос Бойна мощ.',
     groupBonus: '+1 Бойна мощ при сформиране',
   },
   {
     id: 'dey_dyado', type: 'deyets', name: 'Дядо Ильо',
-    cost: 5, chetaPoints: 0, strength: 2, contribution: 'deynost',
+    cost: 6, chetaPoints: 0, strength: 2, contribution: 'deynost',
     effect: 'Премахването на Заптие не предизвиква последствия.',
   },
 ];
