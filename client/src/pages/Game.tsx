@@ -456,14 +456,28 @@ function PanayotOverlay({ state, dispatch }: { state: GameState; dispatch: React
 // ============================================================
 // MAIN GAME COMPONENT
 // ============================================================
-export default function Game() {
+interface GameProps {
+  /** External state for multiplayer mode. If provided, local useReducer is skipped. */
+  externalState?: GameState;
+  /** External dispatch for multiplayer mode. */
+  externalDispatch?: (action: GameAction) => void;
+  /** Index of the local player in multiplayer mode (used to show/hide hand). */
+  localPlayerIndex?: number;
+}
+
+export default function Game({ externalState, externalDispatch, localPlayerIndex }: GameProps = {}) {
   const [, navigate] = useLocation();
-  const [gameState, dispatch] = useReducer(gameReducer, null, () => {
+  const [localGameState, localDispatch] = useReducer(gameReducer, null, () => {
+    if (externalState) return externalState; // won't be used if externalState provided
     const raw = sessionStorage.getItem('haiduti_config');
     if (!raw) return createInitialGameState(['Играч 1', 'Играч 2'], 'medium');
     const { players, gameLength } = JSON.parse(raw) as { players: string[]; gameLength: GameLength };
     return createInitialGameState(players, gameLength);
   });
+
+  // Use external state/dispatch if provided (multiplayer), else local
+  const gameState = externalState ?? localGameState;
+  const dispatch = externalDispatch ?? localDispatch;
 
   const [showPassDevice, setShowPassDevice] = useState(true);
   const [hadzhiMode, setHadzhiMode] = useState(false); // selecting Zaптие to remove

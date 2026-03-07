@@ -215,7 +215,7 @@ export default function Home() {
       </section>
 
       {/* ACTION BUTTONS */}
-      <section className="relative z-10 -mt-8 flex justify-center gap-4 px-4">
+      <section className="relative z-10 -mt-8 flex flex-wrap justify-center gap-4 px-4">
         <motion.button
           onClick={() => navigate('/setup')}
           className="btn-action px-8 py-4 rounded-lg text-lg font-bold shadow-2xl"
@@ -226,6 +226,22 @@ export default function Home() {
           transition={{ delay: 0.3 }}
         >
           ⚔️ Нова игра
+        </motion.button>
+        <motion.button
+          onClick={() => navigate('/lobby')}
+          className="px-6 py-4 rounded-lg text-base font-semibold font-cinzel border transition-all"
+          style={{
+            borderColor: 'oklch(0.45 0.10 148)',
+            color: 'oklch(0.75 0.10 148)',
+            background: 'oklch(0.22 0.04 148)',
+          }}
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.97 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35 }}
+        >
+          🌐 Мултиплейър
         </motion.button>
         <motion.button
           onClick={() => setShowRules(!showRules)}
