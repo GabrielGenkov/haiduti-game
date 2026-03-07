@@ -179,6 +179,12 @@ export default defineConfig({
       "localhost",
       "127.0.0.1",
     ],
+    hmr: {
+      // When accessed through a reverse proxy, the HMR WebSocket must use
+      // the same host/port as the page (port 443 via HTTPS proxy).
+      clientPort: 443,
+      protocol: "wss",
+    },
     fs: {
       strict: true,
       deny: ["**/.*"],
