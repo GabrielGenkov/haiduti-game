@@ -509,7 +509,7 @@ export default function Game() {
                   onClick={() => dispatch({ type: 'PROCEED_TO_FORMING' })}
                   className="btn-action px-3 py-1.5 rounded-lg text-xs"
                 >
-                  {state.canFormGroup ? 'Напред →' : 'Край на хода →'}
+                  Спри изчистването
                 </button>
               )}
               {state.turnStep === 'forming' && (
@@ -670,7 +670,7 @@ export default function Game() {
                 {player.hand.map(card => {
                   const isSelected = state.selectedCards.includes(card.id);
                   const isSelectable = isFormingStep && card.type === 'haydut';
-                  const isDiscardable = isSelectionStep && needsDiscard;
+                  const isDiscardable = isSelectionStep;
                   const isRaisableFromHand = isFormingStep && isValidGroup && (card.type === 'voyvoda' || card.type === 'deyets');
 
                   return (
