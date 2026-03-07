@@ -177,16 +177,21 @@ function handleZaptieEncounter(state: GameState, zaptieCard: Card): GameState {
   const player = state.players[state.currentPlayerIndex];
 
   // ── Васил Левски: ignore first Заптие per turn ──
+  // The Заптие is placed on the field face-up (already done by caller) but has zero
+  // effect on the player — no reveal, no defeat, no popup, turn continues normally.
   if (player.traits.includes('vasil_levski') && !player.zaptieTurnIgnored) {
-    // Mark that the first Заптие was ignored this turn
     const players = state.players.map((p, i) =>
       i === state.currentPlayerIndex ? { ...p, zaptieTurnIgnored: true } : p
     );
-    return {
+    // Determine correct turnStep: if actions remain, stay in recruiting; else go to selection
+    const levskyStep: TurnStep = state.actionsRemaining > 0 ? 'recruiting' : 'selection';
+    return replenishField({
       ...state,
       players,
+      turnStep: levskyStep,
+      // No zaptieTrigger — player is completely unaffected
       message: `Васил Левски: Заптието (сила ${zaptieCard.strength}) е игнорирано! Продължаваш хода.`,
-    };
+    });
   }
 
   const wasSecret = !player.isRevealed;
