@@ -8,6 +8,7 @@ import {
   Card,
   Player,
   ContributionType,
+  TurnStep,
   shuffle,
   getTotalZaptieBoyna,
   getGroupStrength,
@@ -190,14 +191,14 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       const scoutActionsRemaining = state.actionsRemaining - 1;
       const scoutActionsUsed = state.actionsUsed + 1;
-      const scoutNextStep = scoutActionsRemaining <= 0
+      const scoutNextStep: TurnStep = scoutActionsRemaining <= 0
         ? (player.hand.length <= player.stats.nabor ? 'forming' : 'selection')
         : 'recruiting';
       const scoutMessage = card.type === 'zaptie'
         ? `Проучване: открито Заптие (сила ${card.strength})!`
         : `Проучване: открита карта "${card.name}"`;
 
-      return {
+      const scoutState = {
         ...state,
         fieldFaceUp: newFieldFaceUp,
         actionsRemaining: scoutActionsRemaining,
@@ -205,6 +206,16 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         turnStep: scoutNextStep,
         message: scoutMessage,
       };
+
+      // If player is already Разкрит and total face-up Заптие exceeds боyna → defeat
+      if (card.type === 'zaptie' && player.isRevealed) {
+        const totalZaptieBoyna = getTotalZaptieBoyna(scoutState.field, scoutState.fieldFaceUp);
+        if (totalZaptieBoyna > player.stats.boyna) {
+          return handleZaptieEncounter(scoutState, card);
+        }
+      }
+
+      return scoutState;
     }
 
     case 'SAFE_RECRUIT': {
