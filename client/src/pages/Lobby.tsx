@@ -3,7 +3,7 @@ import { useLocation } from 'wouter';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/_core/hooks/useAuth';
 import { trpc } from '@/lib/trpc';
-import { getLoginUrl } from '@/const';
+
 import { toast } from 'sonner';
 
 const HERO_IMG = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663406922472/2gR6Yf82SmCj2Vzvaty3Kv/haiduti-hero-MngQ2SPQRSJ3spU3uVxSan.webp';
@@ -57,13 +57,13 @@ export default function Lobby() {
         <p className="font-lora text-amber-200/80 text-center max-w-sm">
           Влез в профила си, за да създадеш или се присъединиш към стая за игра.
         </p>
-        <a
-          href={getLoginUrl()}
+        <button
+          onClick={() => navigate('/login')}
           className="px-8 py-3 rounded-lg font-cinzel font-bold text-lg transition-all"
           style={{ background: 'oklch(0.45 0.12 148)', color: 'oklch(0.95 0.02 80)' }}
         >
           Вход / Регистрация
-        </a>
+        </button>
         <button
           onClick={() => navigate('/')}
           className="font-source text-sm text-amber-200/50 hover:text-amber-200/80 transition-colors"

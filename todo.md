@@ -43,3 +43,17 @@
 - [ ] Бенковски +2 actions toast notification
 - [ ] Deck/rotation indicator in game UI
 - [ ] Responsive field layout for tablets/mobile
+
+## Auth Replacement (Email + Password)
+- [x] Audit all OAuth references in codebase
+- [x] Add passwordHash column to users table, run db:push
+- [x] Install bcryptjs
+- [x] Create server/auth.ts (hashPassword, verifyPassword, signJWT, verifyJWT)
+- [x] Create server/authRoutes.ts (/api/auth/register, /api/auth/login, /api/auth/logout, /api/auth/me)
+- [x] Rewrite server/_core/context.ts to use JWT cookie (no OAuth/sdk)
+- [x] Rewrite client useAuth hook to use fetch-based auth (no OAuth/tRPC)
+- [x] Build Login.tsx and Register.tsx page components
+- [x] Update App.tsx routing (add /login and /register routes)
+- [x] Update Lobby.tsx and all pages that called getLoginUrl() or OAuth redirects
+- [x] Stub out oauth.ts and sdk.ts authenticateRequest (no longer used)
+- [x] Add auth.email.test.ts vitest tests (5 tests passing, 17 total)

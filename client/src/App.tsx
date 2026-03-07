@@ -8,6 +8,8 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { WebSocketProvider } from "./contexts/WebSocketContext";
 import Home from "./pages/Home";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 import Setup from "./pages/Setup";
 import Lobby from "./pages/Lobby";
 import WaitingRoom from "./pages/WaitingRoom";
@@ -23,6 +25,8 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/login" component={Login} />
+      <Route path="/register" component={Register} />
       <Route path="/setup" component={Setup} />
       <Route path="/game" component={LocalGame} />
       <Route path="/lobby" component={Lobby} />

@@ -26,12 +26,12 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { IncomingMessage, Server } from 'http';
 import { parse as parseCookies } from 'cookie';
-import { sdk } from './_core/sdk';
+import { verifyJWT } from './auth';
 import { COOKIE_NAME } from '../shared/const';
 import {
   getRoomByCode, getRoomById, getRoomPlayers, getRoomPlayerByUserId,
   addPlayerToRoom, removePlayerFromRoom, updatePlayerConnection,
-  updateRoomStatus, saveGameState, loadGameState, getUserByOpenId
+  updateRoomStatus, saveGameState, loadGameState, getUserById
 } from './db';
 import { gameReducer } from '../shared/gameEngine';
 import type { GameAction } from '../shared/gameEngine';
@@ -118,18 +118,19 @@ function playerInfoFromRow(rp: RoomPlayer): PlayerInfo {
 
 async function handleAuth(ws: WebSocket, token: string) {
   try {
-    const session = await sdk.verifySession(token);
-    if (!session) {
+    const payload = await verifyJWT(token);
+    if (!payload) {
       send(ws, { type: 'AUTH_ERROR', message: 'Invalid token' });
       return;
     }
-    const user = await getUserByOpenId(session.openId);
+    const userId = parseInt(payload.sub, 10);
+    const user = await getUserById(userId);
     if (!user) {
       send(ws, { type: 'AUTH_ERROR', message: 'User not found' });
       return;
     }
-    clients.set(ws, { ws, userId: user.id, userName: user.name ?? 'Играч' });
-    send(ws, { type: 'AUTH_OK', userId: user.id, name: user.name ?? 'Играч' });
+    clients.set(ws, { ws, userId: user.id, userName: user.name });
+    send(ws, { type: 'AUTH_OK', userId: user.id, name: user.name });
   } catch (e) {
     send(ws, { type: 'AUTH_ERROR', message: 'Auth failed' });
   }
@@ -290,12 +291,13 @@ export function setupWebSocketServer(httpServer: Server) {
       const cookies = parseCookies(req.headers.cookie ?? '');
       const sessionToken = cookies[COOKIE_NAME];
       if (sessionToken) {
-        const session = await sdk.verifySession(sessionToken);
-        if (session) {
-          const user = await getUserByOpenId(session.openId);
+        const payload = await verifyJWT(sessionToken);
+        if (payload) {
+          const userId = parseInt(payload.sub, 10);
+          const user = await getUserById(userId);
           if (user) {
-            clients.set(ws, { ws, userId: user.id, userName: user.name ?? 'Играч' });
-            send(ws, { type: 'AUTH_OK', userId: user.id, name: user.name ?? 'Играч' });
+            clients.set(ws, { ws, userId: user.id, userName: user.name });
+            send(ws, { type: 'AUTH_OK', userId: user.id, name: user.name });
           }
         }
       }
