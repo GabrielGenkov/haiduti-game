@@ -18,6 +18,7 @@ export interface Card {
   chetaPoints?: number;
   effect?: string;
   groupBonus?: string;
+  traitId?: DeyetsTraitId; // links card to its trait
   // special diamond markers
   silverDiamond?: boolean; // enters on 1st reshuffle
   goldDiamond?: boolean;   // enters on 2nd reshuffle
@@ -29,6 +30,24 @@ export interface PlayerStats {
   boyna: number;   // combat power (4-10)
 }
 
+// Trait IDs for each Деец
+export type DeyetsTraitId =
+  | 'hristo_botev'      // +2 group bonus any type; end: +1 all stats
+  | 'vasil_levski'      // first Zaптие per turn ignored; end: +6 pts per stat lead
+  | 'sofroniy'          // turn-start: peek 1 card free (no action cost)
+  | 'rakowski'          // keep 1 card from group if committee secret
+  | 'evlogi'            // +2 group bonus if набор type; end: +1 набор stat
+  | 'petko_voy'         // on defeat: keep 2 cards; end: +2 pts per raised Деец
+  | 'lyuben'            // +1 group bonus any type; end: +1 chosen stat
+  | 'rayna'             // +1 group bonus if 3+ hayduti
+  | 'benkovski'         // turn-start: +2 actions if ≥3 Zaптие power; end: +2 pts per raised Войвода
+  | 'pop_hariton'       // on defeat: form 1 group before discarding
+  | 'hadzhi'            // turn-start: remove 1 Zaптие from field; end: +4 pts if leading бойна
+  | 'dyado_ilyo'        // on reveal: Zaптие removed, +2 hand limit this turn
+  | 'filip_totyu'       // +2 group bonus if дейност type; end: +1 дейност stat
+  | 'panayot'           // when another player's committee defeated: take 2 cards
+  | 'stefan_karadzha';  // +2 group bonus if бойна type; end: +1 бойна stat
+
 export interface Player {
   id: string;
   name: string;
@@ -37,6 +56,12 @@ export interface Player {
   hand: Card[];
   raisedVoyvodas: Card[];
   raisedDeytsi: Card[];
+  // Active traits from raised Дейци
+  traits: DeyetsTraitId[];
+  // Per-turn state for trait effects
+  zaptieTurnIgnored: boolean;   // Васил Левски: first Zaптие this turn already ignored
+  dyadoIlyoActive: boolean;     // Дядо Ильо: +2 hand limit active this turn
+  lyubenStatChoice?: ContributionType; // Любен Каравелов: chosen stat to boost at end
 }
 
 export type GameLength = 'short' | 'medium' | 'long';
@@ -65,7 +90,24 @@ export interface GameState {
     wasSecret: boolean;
     isDefeated: boolean;
     zaptieCards: Card[];
+    // Дядо Ильо: Zaптие was removed and player gets +2 hand limit
+    dyadoIlyoTriggered?: boolean;
+    // Поп Харитон: player can form 1 group before discarding on defeat
+    popHaritonTriggered?: boolean;
+    // Петко Войвода: player keeps 2 cards on defeat
+    petkoVoyTriggered?: boolean;
   };
+  // Turn-start ability state
+  sofroniyAbilityUsed: boolean;  // Софроний: free peek used this turn
+  hadzhiAbilityUsed: boolean;    // Хаджи Димитър: remove Zaптие used this turn
+  benkovskiApplied: boolean;     // Бенковски: +2 actions already applied this turn
+  // Панайот Хитов: pending card selection after another player's defeat
+  panayotTrigger?: {
+    beneficiaryPlayerIndex: number; // who gets to pick 2 cards
+    defeatedPlayerIndex: number;    // whose cards to pick from
+  };
+  // Поп Харитон: forming step during defeat resolution
+  popHaritonForming: boolean;
 }
 
 // ============================================================
@@ -162,86 +204,100 @@ export const DEYETS_CARDS: Card[] = [
   {
     id: 'dey_vasil', type: 'deyets', name: 'Васил Левски',
     cost: 14, chetaPoints: 0, strength: 2, contribution: 'nabor',
-    effect: 'При рисковано вербуване: ако се срещне Заптие, ходът не се прекъсва.',
+    traitId: 'vasil_levski',
+    effect: 'Черта: Игнорира 1-во Заптие за хода (без разкриване). В края: +6т за всеки показател, в който водиш.',
     goldDiamond: true,
   },
   {
     id: 'dey_hristo', type: 'deyets', name: 'Христо Ботев',
     cost: 14, chetaPoints: 3, strength: 3, contribution: 'deynost',
-    effect: 'При издигане: +2 Набор, +2 Дейност, +2 Бойна мощ на комитета.',
+    traitId: 'hristo_botev',
+    effect: 'Черта: +2 сила на всяка група. В края: +1 към всеки показател.',
     goldDiamond: true,
   },
   // Regular — all 13 below are available in the initial deck
   {
     id: 'dey_sofroniy', type: 'deyets', name: 'Софроний Врачански',
     cost: 6, chetaPoints: 0, strength: 2, contribution: 'deynost',
-    effect: 'При проучване: ако открита карта е Заптие, без последствия. Картата се поставя встрани.',
+    traitId: 'sofroniy',
+    effect: 'Черта: В началото на хода — безплатно проучване на горната карта от тестето (без харчене на действие).',
   },
   {
     id: 'dey_hadzhi', type: 'deyets', name: 'Хаджи Димитър',
     cost: 9, chetaPoints: 0, strength: 3, contribution: 'boyna',
-    effect: 'Премахни едно открито Заптие от полето. На негово място — неоткрита карта от тестето.',
+    traitId: 'hadzhi',
+    effect: 'Черта: Веднъж за ход — премахни 1 открито Заптие от полето. В края: +4т ако водиш по Бойна мощ.',
   },
   {
     id: 'dey_filip', type: 'deyets', name: 'Филип Тотю',
     cost: 6, chetaPoints: 0, strength: 2, contribution: 'deynost',
-    effect: 'Добавя +1 сила при сформиране на група с принос Дейност.',
-    groupBonus: '+1 Дейност при сформиране',
+    traitId: 'filip_totyu',
+    effect: 'Черта: +2 сила при сформиране на група с принос Дейност. В края: +1 към Дейност.',
+    groupBonus: '+2 Дейност при сформиране',
   },
   {
     id: 'dey_evlogi', type: 'deyets', name: 'Евлоги и Христо Георгиеви',
     cost: 9, chetaPoints: 2, strength: 2, contribution: 'nabor',
-    effect: 'Добавя +1 сила при сформиране на всяка група.',
-    groupBonus: '+1 при сформиране',
+    traitId: 'evlogi',
+    effect: 'Черта: +2 сила при сформиране на група с принос Набор. В края: +1 към Набор.',
+    groupBonus: '+2 Набор при сформиране',
   },
   {
     id: 'dey_benkovski', type: 'deyets', name: 'Георги Бенковски',
     cost: 9, chetaPoints: 2, strength: 3, contribution: 'boyna',
-    effect: 'При определена сила на Заптиетата: може да ги отстрани.',
+    traitId: 'benkovski',
+    effect: 'Черта: Ако сумарната Бойна мощ на Заптиетата на полето ≥3 — получаваш +2 действия за хода. В края: +2т за всеки издигнат Войвода.',
   },
   {
     id: 'dey_rayna', type: 'deyets', name: 'Райна Княгиня',
     cost: 6, chetaPoints: 2, strength: 2, contribution: 'nabor',
-    effect: 'Добавя +2 сила при сформиране на група с поне 3 Хайдути.',
-    groupBonus: '+2 при 3+ Хайдути',
+    traitId: 'rayna',
+    effect: 'Черта: +1 сила при сформиране на група с поне 3 Хайдути.',
+    groupBonus: '+1 при 3+ Хайдути',
   },
   {
     id: 'dey_rakowski', type: 'deyets', name: 'Георги Раковски',
     cost: 9, chetaPoints: 2, strength: 3, contribution: 'boyna',
-    effect: 'Добавя +1 сила при сформиране на група с принос Набор.',
-    groupBonus: '+1 Набор при сформиране',
+    traitId: 'rakowski',
+    effect: 'Черта: При сформиране на група — ако комитетът е таен, запазваш 1 карта от групата в ръка.',
   },
   {
     id: 'dey_pop', type: 'deyets', name: 'Поп Харитон',
     cost: 6, chetaPoints: 0, strength: 2, contribution: 'nabor',
-    effect: 'При разбит комитет след рисковано вербуване: влиза в сила.',
+    traitId: 'pop_hariton',
+    effect: 'Черта: При разбит комитет — преди изчистването на ръката, може да сформираш 1 последна група.',
   },
   {
     id: 'dey_lyuben', type: 'deyets', name: 'Любен Каравелов',
     cost: 9, chetaPoints: 2, strength: 3, contribution: 'nabor',
-    effect: 'Бонусът важи винаги при сформиране на група.',
+    traitId: 'lyuben',
+    effect: 'Черта: +1 сила на всяка група. В края: +1 към избран показател.',
     groupBonus: '+1 при всяка група',
   },
   {
     id: 'dey_petko_voy', type: 'deyets', name: 'Петко Войвода',
     cost: 9, chetaPoints: 0, strength: 2, contribution: 'boyna',
-    effect: 'При разбит комитет: запазваш картите в ръка.',
+    traitId: 'petko_voy',
+    effect: 'Черта: При разбит комитет — запазваш 2 карти по избор вместо да изчистиш всичко. В края: +2т за всеки издигнат Деец.',
   },
   {
     id: 'dey_panayot', type: 'deyets', name: 'Панайот Хитов',
     cost: 9, chetaPoints: 2, strength: 2, contribution: 'deynost',
-    effect: 'Ако е издигнат от друг играч и са останали карти за чистене.',
+    traitId: 'panayot',
+    effect: 'Черта: Когато друг играч е разбит — вземаш до 2 карти от неговата ръка преди изчистването.',
   },
   {
     id: 'dey_stefan', type: 'deyets', name: 'Стефан Каража',
     cost: 9, chetaPoints: 0, strength: 3, contribution: 'boyna',
-    effect: 'Добавя сила при сформиране на група с принос Бойна мощ.',
-    groupBonus: '+1 Бойна мощ при сформиране',
+    traitId: 'stefan_karadzha',
+    effect: 'Черта: +2 сила при сформиране на група с принос Бойна мощ. В края: +1 към Бойна мощ.',
+    groupBonus: '+2 Бойна мощ при сформиране',
   },
   {
     id: 'dey_dyado', type: 'deyets', name: 'Дядо Ильо',
     cost: 6, chetaPoints: 0, strength: 2, contribution: 'deynost',
-    effect: 'Премахването на Заптие не предизвиква последствия.',
+    traitId: 'dyado_ilyo',
+    effect: 'Черта: Когато комитетът се разкрива от Заптие — Заптието се премахва без последствия и получаваш +2 Набор за хода.',
   },
 ];
 
@@ -386,40 +442,123 @@ export function colorLabel(color: CardColor): string {
 export interface PlayerScore {
   playerId: string;
   playerName: string;
+  // Effective stats after end-of-game trait boosts
+  effectiveStats: PlayerStats;
   statTotal: number;
   leadershipBonus: number;
   voyvodaPoints: number;
   deyetsPoints: number;
+  traitBonusPoints: number;
+  traitBonusBreakdown: string[];
   total: number;
 }
 
 export function calculateScores(players: Player[]): PlayerScore[] {
-  // Find leaders for each stat
-  const maxNabor = Math.max(...players.map(p => p.stats.nabor));
-  const maxDeynost = Math.max(...players.map(p => p.stats.deynost));
-  const maxBoyna = Math.max(...players.map(p => p.stats.boyna));
+  // ── Step 1: Apply end-of-game stat boosts from traits ──
+  // These modify effective stats BEFORE leadership comparison:
+  // Христо Ботев: +1 all stats
+  // Евлоги: +1 набор
+  // Филип Тотю: +1 дейност
+  // Стефан Каража: +1 бойна
+  // Любен Каравелов: +1 chosen stat
+  const effectiveStatsList = players.map(player => {
+    const s = { ...player.stats };
+    if (player.traits.includes('hristo_botev')) {
+      s.nabor = Math.min(s.nabor + 1, 10);
+      s.deynost = Math.min(s.deynost + 1, 10);
+      s.boyna = Math.min(s.boyna + 1, 10);
+    }
+    if (player.traits.includes('evlogi')) s.nabor = Math.min(s.nabor + 1, 10);
+    if (player.traits.includes('filip_totyu')) s.deynost = Math.min(s.deynost + 1, 10);
+    if (player.traits.includes('stefan_karadzha')) s.boyna = Math.min(s.boyna + 1, 10);
+    if (player.traits.includes('lyuben') && player.lyubenStatChoice) {
+      s[player.lyubenStatChoice] = Math.min(s[player.lyubenStatChoice] + 1, 10);
+    }
+    return s;
+  });
 
-  return players.map(player => {
-    const statTotal = player.stats.nabor + player.stats.deynost + player.stats.boyna;
-    
+  // ── Step 2: Find leaders using effective stats ──
+  const maxNabor = Math.max(...effectiveStatsList.map(s => s.nabor));
+  const maxDeynost = Math.max(...effectiveStatsList.map(s => s.deynost));
+  const maxBoyna = Math.max(...effectiveStatsList.map(s => s.boyna));
+
+  return players.map((player, idx) => {
+    const effectiveStats = effectiveStatsList[idx];
+    const statTotal = effectiveStats.nabor + effectiveStats.deynost + effectiveStats.boyna;
+
+    // Standard leadership bonus (5 pts per stat where player leads)
     let leadershipBonus = 0;
-    if (player.stats.nabor === maxNabor) leadershipBonus += 5;
-    if (player.stats.deynost === maxDeynost) leadershipBonus += 5;
-    if (player.stats.boyna === maxBoyna) leadershipBonus += 5;
+    if (effectiveStats.nabor === maxNabor) leadershipBonus += 5;
+    if (effectiveStats.deynost === maxDeynost) leadershipBonus += 5;
+    if (effectiveStats.boyna === maxBoyna) leadershipBonus += 5;
 
     const voyvodaPoints = player.raisedVoyvodas.reduce((sum, c) => sum + (c.chetaPoints ?? 0), 0);
-    
-    // Deyets points (simplified - count all for now)
     const deyetsPoints = player.raisedDeytsi.reduce((sum, c) => sum + (c.chetaPoints ?? 0), 0);
+
+    // ── Step 3: Extra trait bonus points ──
+    let traitBonusPoints = 0;
+    const traitBonusBreakdown: string[] = [];
+
+    // Васил Левски: +6 pts for each stat where player leads
+    if (player.traits.includes('vasil_levski')) {
+      let vasil = 0;
+      if (effectiveStats.nabor === maxNabor) vasil += 6;
+      if (effectiveStats.deynost === maxDeynost) vasil += 6;
+      if (effectiveStats.boyna === maxBoyna) vasil += 6;
+      if (vasil > 0) {
+        traitBonusPoints += vasil;
+        traitBonusBreakdown.push(`Васил Левски: +${vasil} (водещ по показател)`);
+      }
+    }
+
+    // Георги Бенковски: +2 pts per raised Войвода
+    if (player.traits.includes('benkovski') && player.raisedVoyvodas.length > 0) {
+      const bonus = player.raisedVoyvodas.length * 2;
+      traitBonusPoints += bonus;
+      traitBonusBreakdown.push(`Бенковски: +${bonus} (${player.raisedVoyvodas.length} Войводи)`);
+    }
+
+    // Петко Войвода: +2 pts per raised Деец
+    if (player.traits.includes('petko_voy') && player.raisedDeytsi.length > 0) {
+      const bonus = player.raisedDeytsi.length * 2;
+      traitBonusPoints += bonus;
+      traitBonusBreakdown.push(`Петко Войвода: +${bonus} (${player.raisedDeytsi.length} Дейци)`);
+    }
+
+    // Хаджи Димитър: +4 pts if player leads in бойна
+    if (player.traits.includes('hadzhi') && effectiveStats.boyna === maxBoyna) {
+      traitBonusPoints += 4;
+      traitBonusBreakdown.push('Хаджи Димитър: +4 (водещ по Бойна мощ)');
+    }
+
+    // Stat boost breakdown labels
+    if (player.traits.includes('hristo_botev')) {
+      traitBonusBreakdown.push('Христо Ботев: +1 на всички показатели');
+    }
+    if (player.traits.includes('evlogi')) {
+      traitBonusBreakdown.push('Евлоги: +1 Набор');
+    }
+    if (player.traits.includes('filip_totyu')) {
+      traitBonusBreakdown.push('Филип Тотю: +1 Дейност');
+    }
+    if (player.traits.includes('stefan_karadzha')) {
+      traitBonusBreakdown.push('Стефан Каража: +1 Бойна мощ');
+    }
+    if (player.traits.includes('lyuben') && player.lyubenStatChoice) {
+      traitBonusBreakdown.push(`Любен Каравелов: +1 ${player.lyubenStatChoice}`);
+    }
 
     return {
       playerId: player.id,
       playerName: player.name,
+      effectiveStats,
       statTotal,
       leadershipBonus,
       voyvodaPoints,
       deyetsPoints,
-      total: statTotal + leadershipBonus + voyvodaPoints + deyetsPoints,
+      traitBonusPoints,
+      traitBonusBreakdown,
+      total: statTotal + leadershipBonus + voyvodaPoints + deyetsPoints + traitBonusPoints,
     };
   });
 }
@@ -453,6 +592,10 @@ export function createInitialGameState(
     hand: [],
     raisedVoyvodas: [],
     raisedDeytsi: [],
+    traits: [],
+    zaptieTurnIgnored: false,
+    dyadoIlyoActive: false,
+    lyubenStatChoice: undefined,
   }));
 
   return {
@@ -473,5 +616,10 @@ export function createInitialGameState(
     selectedCards: [],
     message: `${players[0].name} започва играта!`,
     zaptieTrigger: undefined,
+    sofroniyAbilityUsed: false,
+    hadzhiAbilityUsed: false,
+    benkovskiApplied: false,
+    panayotTrigger: undefined,
+    popHaritonForming: false,
   };
 }

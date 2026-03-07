@@ -5,7 +5,26 @@
 import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
-import { HAYDUTI_CARDS, VOYVODA_CARDS, DEYETS_CARDS, ZAPTIE_CARDS, Card, CardColor, ContributionType } from '@/lib/gameData';
+import { HAYDUTI_CARDS, VOYVODA_CARDS, DEYETS_CARDS, ZAPTIE_CARDS, Card, CardColor, ContributionType, DeyetsTraitId } from '@/lib/gameData';
+
+// Trait icons for Дейци gallery display
+const TRAIT_ICONS: Record<DeyetsTraitId, { icon: string; color: string }> = {
+  hristo_botev:    { icon: '🌟', color: '#fbbf24' },
+  vasil_levski:    { icon: '🛡️', color: '#6ee7a0' },
+  sofroniy:        { icon: '👁️', color: '#93c5fd' },
+  rakowski:        { icon: '🦅', color: '#fde68a' },
+  evlogi:          { icon: '💰', color: '#fbbf24' },
+  petko_voy:       { icon: '⚔️', color: '#fca5a5' },
+  lyuben:          { icon: '📚', color: '#c4b5fd' },
+  rayna:           { icon: '🏴', color: '#f9a8d4' },
+  benkovski:       { icon: '🔥', color: '#fb923c' },
+  pop_hariton:     { icon: '✝️', color: '#a78bfa' },
+  hadzhi:          { icon: '🗡️', color: '#fca5a5' },
+  dyado_ilyo:      { icon: '🧓', color: '#86efac' },
+  filip_totyu:     { icon: '⚡', color: '#fcd34d' },
+  panayot:         { icon: '🦊', color: '#fdba74' },
+  stefan_karadzha: { icon: '🏹', color: '#fca5a5' },
+};
 
 const HERO_IMG = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663406922472/2gR6Yf82SmCj2Vzvaty3Kv/haiduti-hero-MngQ2SPQRSJ3spU3uVxSan.webp';
 const CARD_BACK = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663406922472/2gR6Yf82SmCj2Vzvaty3Kv/haiduti-card-back-B4aTCoJT5z8NC5YoWEzuee.webp';
@@ -91,6 +110,19 @@ function CardDisplay({ card, showBack = false }: { card: Card; showBack?: boolea
               )}
             </div>
 
+            {/* Trait icon + diamond for deyets */}
+            {card.type === 'deyets' && card.traitId && (
+              <div className="flex items-center gap-1 mt-0.5">
+                <span style={{ fontSize: 14, color: TRAIT_ICONS[card.traitId].color }}>
+                  {TRAIT_ICONS[card.traitId].icon}
+                </span>
+                {(card.silverDiamond || card.goldDiamond) && (
+                  <span style={{ fontSize: 9, color: card.goldDiamond ? '#fbbf24' : '#94a3b8' }}>
+                    {card.goldDiamond ? '◆ Злато' : '◆ Сребро'}
+                  </span>
+                )}
+              </div>
+            )}
             {/* Effect (for deyets) */}
             {card.effect && (
               <div className="text-xs text-amber-200/70 mt-1 leading-tight line-clamp-2 font-source">
