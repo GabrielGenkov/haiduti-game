@@ -96,6 +96,8 @@ export interface GameState {
     popHaritonTriggered?: boolean;
     // Петко Войвода: player keeps 2 cards on defeat
     petkoVoyTriggered?: boolean;
+    // Whether the Заптие came from a risky recruit (no forming allowed after discard)
+    fromRiskyRecruit?: boolean;
   };
   // Turn-start ability state
   sofroniyAbilityUsed: boolean;  // Софроний: free peek used this turn

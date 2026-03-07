@@ -753,12 +753,15 @@ export default function Game() {
               )}
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              {state.field.map((card, i) => {
+{/* Helper to render a single field card slot */}
+            {(() => {
+              const mainCards = state.field.slice(0, 16);
+              const extraCards = state.field.slice(16);
+
+              const renderFieldCard = (card: Card, i: number) => {
                 const isFaceUp = state.fieldFaceUp[i];
                 const isRaisable = isFormingStep && isValidGroup && (card.type === 'voyvoda' || card.type === 'deyets') && isFaceUp;
                 const isHadzhiTarget = hadzhiMode && isFaceUp && card.type === 'zaptie';
-
                 return (
                   <div key={`${card.id}_${i}`} className="relative">
                     {isFaceUp ? (
@@ -801,8 +804,34 @@ export default function Game() {
                     )}
                   </div>
                 );
-              })}
-            </div>
+              };
+
+              return (
+                <>
+                  {/* Main 4×4 grid — always exactly 16 slots */}
+                  <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
+                    {mainCards.map((card, i) => renderFieldCard(card, i))}
+                    {/* Empty placeholder slots while field is filling up */}
+                    {Array.from({ length: Math.max(0, 16 - mainCards.length) }).map((_, j) => (
+                      <div
+                        key={`empty_${j}`}
+                        className="rounded-lg border border-dashed"
+                        style={{ width: 64, height: 100, borderColor: 'oklch(0.25 0.02 55)', opacity: 0.4 }}
+                      />
+                    ))}
+                  </div>
+                  {/* Extra cards aside (e.g. from Sofroniy peek or Risky recruit Zaптие overflow) */}
+                  {extraCards.length > 0 && (
+                    <div className="mt-3 pt-3 border-t" style={{ borderColor: 'oklch(0.28 0.03 55)' }}>
+                      <p className="font-cinzel text-xs mb-2" style={{ color: 'oklch(0.55 0.04 78)' }}>ДОПЪЛНИТЕЛНИ КАРТИ</p>
+                      <div className="flex flex-wrap gap-2">
+                        {extraCards.map((card, j) => renderFieldCard(card, 16 + j))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
 
           {/* HAND */}

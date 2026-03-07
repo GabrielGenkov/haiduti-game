@@ -445,7 +445,13 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           actionsRemaining: riskyZaptieActionsRemaining,
           // turnStep will be set by handleZaptieEncounter or ACKNOWLEDGE_ZAPTIE
         };
-        return handleZaptieEncounter(newState, card);
+        // Tag the trigger as coming from risky recruit so ACKNOWLEDGE_ZAPTIE
+        // knows to end the turn after discard (no forming step allowed)
+        const riskyResult = handleZaptieEncounter(newState, card);
+        if (riskyResult.zaptieTrigger) {
+          return { ...riskyResult, zaptieTrigger: { ...riskyResult.zaptieTrigger, fromRiskyRecruit: true } };
+        }
+        return riskyResult;
       }
 
       const newHand = [...player.hand, card];
@@ -778,26 +784,35 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       // ── NON-DEFEAT cases ──────────────────────────────────────
       // Committee was only revealed (wasSecret) OR already revealed but survived.
-      // Player should CONTINUE their turn from where they left off.
-      // actionsRemaining was preserved in handleZaptieEncounter for these cases.
+      const fromRisky = zaptie?.fromRiskyRecruit ?? false;
 
       // Дядо Ильо: +2 hand limit active — check if hand still over limit
       const effectiveNabor = zapPlayer.stats.nabor + (zapPlayer.dyadoIlyoActive ? 2 : 0);
       const needsSelection = zapPlayer.hand.length > effectiveNabor;
 
       if (needsSelection) {
-        // Over hand limit — go to selection first, then back to recruiting
+        // Over hand limit — go to selection first.
+        // If from risky recruit: after discard, end turn (canFormGroup=false).
+        // If from scout/other: after discard, player can still form groups.
         return {
           ...state,
           zaptieTrigger: undefined,
           turnStep: 'selection',
-          canFormGroup: false,
-          message: 'Подбор на революционери',
+          canFormGroup: !fromRisky, // risky recruit Заптие: no forming after discard
+          actionsRemaining: fromRisky ? 0 : state.actionsRemaining,
+          message: fromRisky
+            ? 'Заптие от рисковано вербуване! Изчисти ръката до лимита, след което ходът приключва.'
+            : 'Подбор на революционери',
         };
       }
 
-      // Hand is within limit — resume turn
-      // If there are still actions left, go back to recruiting; otherwise go to selection
+      // Hand is within limit
+      if (fromRisky) {
+        // Risky recruit Заптие with no discard needed — end turn immediately
+        return advanceTurn({ ...state, zaptieTrigger: undefined });
+      }
+
+      // Scout/other Заптие — resume turn with remaining actions
       const resumeStep: TurnStep = state.actionsRemaining > 0 ? 'recruiting' : 'selection';
       return {
         ...state,
