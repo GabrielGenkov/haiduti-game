@@ -132,32 +132,33 @@ export const HAYDUTI_CARDS: Card[] = [
   ...makeHayduti('yellow', 'boyna', 3, 2),
 ];
 
-// Voyvoda cards: 17 cards with varying costs and Cheta points
+// Voyvoda cards: 17 cards
+// Per a.txt: 4×(cost4,pts2) regular + 5×(cost7,pts3) regular + 5×(cost10,pts5) silverDiamond + 3×(cost12,pts7) goldDiamond
 export const VOYVODA_CARDS: Card[] = [
-  { id: 'voy_1', type: 'voyvoda', name: 'Войвода', cost: 4, chetaPoints: 2, silverDiamond: true },
-  { id: 'voy_2', type: 'voyvoda', name: 'Войвода', cost: 4, chetaPoints: 2, silverDiamond: true },
-  { id: 'voy_3', type: 'voyvoda', name: 'Войвода', cost: 5, chetaPoints: 3, silverDiamond: true },
-  { id: 'voy_4', type: 'voyvoda', name: 'Войвода', cost: 5, chetaPoints: 3, silverDiamond: true },
-  { id: 'voy_5', type: 'voyvoda', name: 'Войвода', cost: 6, chetaPoints: 3, silverDiamond: true },
-  { id: 'voy_6', type: 'voyvoda', name: 'Войвода', cost: 6, chetaPoints: 3 },
+  // Regular — available in initial deck
+  { id: 'voy_1', type: 'voyvoda', name: 'Войвода', cost: 4, chetaPoints: 2 },
+  { id: 'voy_2', type: 'voyvoda', name: 'Войвода', cost: 4, chetaPoints: 2 },
+  { id: 'voy_3', type: 'voyvoda', name: 'Войвода', cost: 4, chetaPoints: 2 },
+  { id: 'voy_4', type: 'voyvoda', name: 'Войвода', cost: 4, chetaPoints: 2 },
+  { id: 'voy_5', type: 'voyvoda', name: 'Войвода', cost: 7, chetaPoints: 3 },
+  { id: 'voy_6', type: 'voyvoda', name: 'Войвода', cost: 7, chetaPoints: 3 },
   { id: 'voy_7', type: 'voyvoda', name: 'Войвода', cost: 7, chetaPoints: 3 },
   { id: 'voy_8', type: 'voyvoda', name: 'Войвода', cost: 7, chetaPoints: 3 },
-  { id: 'voy_9', type: 'voyvoda', name: 'Войвода', cost: 8, chetaPoints: 5 },
-  { id: 'voy_10', type: 'voyvoda', name: 'Войвода', cost: 8, chetaPoints: 5 },
-  { id: 'voy_11', type: 'voyvoda', name: 'Войвода', cost: 9, chetaPoints: 5 },
-  { id: 'voy_12', type: 'voyvoda', name: 'Войвода', cost: 9, chetaPoints: 5 },
-  { id: 'voy_13', type: 'voyvoda', name: 'Войвода', cost: 10, chetaPoints: 5 },
-  { id: 'voy_14', type: 'voyvoda', name: 'Войвода', cost: 10, chetaPoints: 7 },
-  { id: 'voy_15', type: 'voyvoda', name: 'Войвода', cost: 11, chetaPoints: 7 },
-  { id: 'voy_16', type: 'voyvoda', name: 'Войвода', cost: 12, chetaPoints: 7 },
-  { id: 'voy_17', type: 'voyvoda', name: 'Войвода', cost: 14, chetaPoints: 7 },
+  { id: 'voy_9', type: 'voyvoda', name: 'Войвода', cost: 7, chetaPoints: 3 },
+  // Silver diamond — enter after rotation 1
+  { id: 'voy_10', type: 'voyvoda', name: 'Войвода', cost: 10, chetaPoints: 5, silverDiamond: true },
+  { id: 'voy_11', type: 'voyvoda', name: 'Войвода', cost: 10, chetaPoints: 5, silverDiamond: true },
+  { id: 'voy_12', type: 'voyvoda', name: 'Войвода', cost: 10, chetaPoints: 5, silverDiamond: true },
+  { id: 'voy_13', type: 'voyvoda', name: 'Войвода', cost: 10, chetaPoints: 5, silverDiamond: true },
+  { id: 'voy_14', type: 'voyvoda', name: 'Войвода', cost: 10, chetaPoints: 5, silverDiamond: true },
+  // Gold diamond — enter after rotation 2
+  { id: 'voy_15', type: 'voyvoda', name: 'Войвода', cost: 12, chetaPoints: 7, goldDiamond: true },
+  { id: 'voy_16', type: 'voyvoda', name: 'Войвода', cost: 12, chetaPoints: 7, goldDiamond: true },
+  { id: 'voy_17', type: 'voyvoda', name: 'Войвода', cost: 12, chetaPoints: 7, goldDiamond: true },
 ];
 
 // Deyets cards: 15 named historical figures
-// Diamond distribution: 3 regular (initial deck), 6 silverDiamond (rotation 1), 6 goldDiamond (rotation 2)
-// Regular (cheapest/simplest): Дядо Иньо (5), Поп Харитон (5), Филип Тотю (5)
-// Silver (moderate): Петко Войвода (6), Панайот Хитов (6), Стефан Каража (6), Хаджи Димитър (7), Евлоги и Христо (7), Георги Бенковски (7)
-// Gold (most powerful): Васил Левски (8), Георги Раковски (8), Любен Каравелов (9), Райна Княгиня (6★), Христо Ботев (14), Софроний Врачански (6★)
+// Per a.txt: 13 regular (initial deck) + 0 silver + 2 goldDiamond (Васил Левски, Христо Ботев)
 export const DEYETS_CARDS: Card[] = [
   {
     id: 'dey_vasil', type: 'deyets', name: 'Васил Левски',
@@ -166,115 +167,106 @@ export const DEYETS_CARDS: Card[] = [
     goldDiamond: true,
   },
   {
-    id: 'dey_dyado', type: 'deyets', name: 'Дядо Иньо',
-    cost: 5, chetaPoints: 0, strength: 2, contribution: 'deynost',
-    effect: 'Премахването на Заптие не предизвиква последствия.',
-    // regular — available in initial deck
+    id: 'dey_hristo', type: 'deyets', name: 'Христо Ботев',
+    cost: 14, chetaPoints: 3, strength: 3, contribution: 'deynost',
+    effect: 'При издигане: +2 Набор, +2 Дейност, +2 Бойна мощ на комитета.',
+    goldDiamond: true,
   },
-  {
-    id: 'dey_petko_voy', type: 'deyets', name: 'Петко Войвода',
-    cost: 6, chetaPoints: 0, strength: 2, contribution: 'boyna',
-    effect: 'При разбит комитет: запазваш картите в ръка.',
-    silverDiamond: true,
-  },
-  {
-    id: 'dey_pop', type: 'deyets', name: 'Поп Харитон',
-    cost: 5, chetaPoints: 0, strength: 2, contribution: 'nabor',
-    effect: 'При разбит комитет след рисковано вербуване: влиза в сила.',
-    // regular — available in initial deck
-  },
+  // Regular — all 13 below are available in the initial deck
   {
     id: 'dey_sofroniy', type: 'deyets', name: 'Софроний Врачански',
     cost: 6, chetaPoints: 0, strength: 2, contribution: 'deynost',
     effect: 'При проучване: ако открита карта е Заптие, без последствия. Картата се поставя встрани.',
-    goldDiamond: true,
   },
   {
     id: 'dey_hadzhi', type: 'deyets', name: 'Хаджи Димитър',
     cost: 7, chetaPoints: 0, strength: 3, contribution: 'boyna',
     effect: 'Премахни едно открито Заптие от полето. На негово място — неоткрита карта от тестето.',
-    silverDiamond: true,
-  },
-  {
-    id: 'dey_stefan', type: 'deyets', name: 'Стефан Каража',
-    cost: 6, chetaPoints: 0, strength: 3, contribution: 'boyna',
-    effect: 'Добавя сила при сформиране на група с принос Бойна мощ.',
-    groupBonus: '+1 Бойна мощ при сформиране',
-    silverDiamond: true,
-  },
-  {
-    id: 'dey_evlogi', type: 'deyets', name: 'Евлоги и Христо Георгиеви',
-    cost: 7, chetaPoints: 2, strength: 2, contribution: 'nabor',
-    effect: 'Добавя +1 сила при сформиране на всяка група.',
-    groupBonus: '+1 при сформиране',
-    silverDiamond: true,
   },
   {
     id: 'dey_filip', type: 'deyets', name: 'Филип Тотю',
     cost: 5, chetaPoints: 0, strength: 2, contribution: 'deynost',
     effect: 'Добавя +1 сила при сформиране на група с принос Дейност.',
     groupBonus: '+1 Дейност при сформиране',
-    // regular — available in initial deck
+  },
+  {
+    id: 'dey_evlogi', type: 'deyets', name: 'Евлоги и Христо Георгиеви',
+    cost: 7, chetaPoints: 2, strength: 2, contribution: 'nabor',
+    effect: 'Добавя +1 сила при сформиране на всяка група.',
+    groupBonus: '+1 при сформиране',
+  },
+  {
+    id: 'dey_benkovski', type: 'deyets', name: 'Георги Бенковски',
+    cost: 7, chetaPoints: 2, strength: 3, contribution: 'boyna',
+    effect: 'При определена сила на Заптиетата: може да ги отстрани.',
   },
   {
     id: 'dey_rayna', type: 'deyets', name: 'Райна Княгиня',
     cost: 6, chetaPoints: 2, strength: 2, contribution: 'nabor',
     effect: 'Добавя +2 сила при сформиране на група с поне 3 Хайдути.',
     groupBonus: '+2 при 3+ Хайдути',
-    goldDiamond: true,
-  },
-  {
-    id: 'dey_lyuben', type: 'deyets', name: 'Любен Каравелов',
-    cost: 9, chetaPoints: 2, strength: 3, contribution: 'nabor',
-    effect: 'Бонусът важи винаги при сформиране на група.',
-    groupBonus: '+1 при всяка група',
-    goldDiamond: true,
-  },
-  {
-    id: 'dey_hristo', type: 'deyets', name: 'Христо Ботев',
-    cost: 14, chetaPoints: 3, strength: 3, contribution: 'deynost',
-    effect: 'При издигане: +2 Набор, +2 Дейност, +2 Бойна мощ на комитета.',
-    goldDiamond: true,
   },
   {
     id: 'dey_rakowski', type: 'deyets', name: 'Георги Раковски',
     cost: 8, chetaPoints: 2, strength: 3, contribution: 'boyna',
     effect: 'Добавя +1 сила при сформиране на група с принос Набор.',
     groupBonus: '+1 Набор при сформиране',
-    goldDiamond: true,
   },
   {
-    id: 'dey_benkovski', type: 'deyets', name: 'Георги Бенковски',
-    cost: 7, chetaPoints: 2, strength: 3, contribution: 'boyna',
-    effect: 'При определена сила на Заптиетата: може да ги отстрани.',
-    silverDiamond: true,
+    id: 'dey_pop', type: 'deyets', name: 'Поп Харитон',
+    cost: 5, chetaPoints: 0, strength: 2, contribution: 'nabor',
+    effect: 'При разбит комитет след рисковано вербуване: влиза в сила.',
+  },
+  {
+    id: 'dey_lyuben', type: 'deyets', name: 'Любен Каравелов',
+    cost: 9, chetaPoints: 2, strength: 3, contribution: 'nabor',
+    effect: 'Бонусът важи винаги при сформиране на група.',
+    groupBonus: '+1 при всяка група',
+  },
+  {
+    id: 'dey_petko_voy', type: 'deyets', name: 'Петко Войвода',
+    cost: 6, chetaPoints: 0, strength: 2, contribution: 'boyna',
+    effect: 'При разбит комитет: запазваш картите в ръка.',
   },
   {
     id: 'dey_panayot', type: 'deyets', name: 'Панайот Хитов',
     cost: 6, chetaPoints: 2, strength: 2, contribution: 'deynost',
     effect: 'Ако е издигнат от друг играч и са останали карти за чистене.',
-    silverDiamond: true,
+  },
+  {
+    id: 'dey_stefan', type: 'deyets', name: 'Стефан Каража',
+    cost: 6, chetaPoints: 0, strength: 3, contribution: 'boyna',
+    effect: 'Добавя сила при сформиране на група с принос Бойна мощ.',
+    groupBonus: '+1 Бойна мощ при сформиране',
+  },
+  {
+    id: 'dey_dyado', type: 'deyets', name: 'Дядо Ильо',
+    cost: 5, chetaPoints: 0, strength: 2, contribution: 'deynost',
+    effect: 'Премахването на Заптие не предизвиква последствия.',
   },
 ];
 
-// Zaptie cards: 16 cards with varying combat power
+// Zaptie cards: 16 cards
+// Per a.txt: 8×str1 regular + 6×str2 regular + 1×str3 silverDiamond + 1×str3 goldDiamond
 export const ZAPTIE_CARDS: Card[] = [
-  { id: 'zap_1', type: 'zaptie', name: 'Заптие', strength: 1, silverDiamond: true },
-  { id: 'zap_2', type: 'zaptie', name: 'Заптие', strength: 1, silverDiamond: true },
-  { id: 'zap_3', type: 'zaptie', name: 'Заптие', strength: 1, silverDiamond: true },
-  { id: 'zap_4', type: 'zaptie', name: 'Заптие', strength: 1, silverDiamond: true },
-  { id: 'zap_5', type: 'zaptie', name: 'Заптие', strength: 2 },
-  { id: 'zap_6', type: 'zaptie', name: 'Заптие', strength: 2 },
-  { id: 'zap_7', type: 'zaptie', name: 'Заптие', strength: 2 },
-  { id: 'zap_8', type: 'zaptie', name: 'Заптие', strength: 2 },
-  { id: 'zap_9', type: 'zaptie', name: 'Заптие', strength: 3 },
-  { id: 'zap_10', type: 'zaptie', name: 'Заптие', strength: 3 },
-  { id: 'zap_11', type: 'zaptie', name: 'Заптие', strength: 3 },
-  { id: 'zap_12', type: 'zaptie', name: 'Заптие', strength: 3 },
-  { id: 'zap_13', type: 'zaptie', name: 'Заптие', strength: 4 },
-  { id: 'zap_14', type: 'zaptie', name: 'Заптие', strength: 4 },
-  { id: 'zap_15', type: 'zaptie', name: 'Заптие', strength: 5 },
-  { id: 'zap_16', type: 'zaptie', name: 'Заптие', strength: 5 },
+  // Regular — available in initial deck
+  { id: 'zap_1', type: 'zaptie', name: 'Заптие', strength: 1 },
+  { id: 'zap_2', type: 'zaptie', name: 'Заптие', strength: 1 },
+  { id: 'zap_3', type: 'zaptie', name: 'Заптие', strength: 1 },
+  { id: 'zap_4', type: 'zaptie', name: 'Заптие', strength: 1 },
+  { id: 'zap_5', type: 'zaptie', name: 'Заптие', strength: 1 },
+  { id: 'zap_6', type: 'zaptie', name: 'Заптие', strength: 1 },
+  { id: 'zap_7', type: 'zaptie', name: 'Заптие', strength: 1 },
+  { id: 'zap_8', type: 'zaptie', name: 'Заптие', strength: 1 },
+  { id: 'zap_9', type: 'zaptie', name: 'Заптие', strength: 2 },
+  { id: 'zap_10', type: 'zaptie', name: 'Заптие', strength: 2 },
+  { id: 'zap_11', type: 'zaptie', name: 'Заптие', strength: 2 },
+  { id: 'zap_12', type: 'zaptie', name: 'Заптие', strength: 2 },
+  { id: 'zap_13', type: 'zaptie', name: 'Заптие', strength: 2 },
+  { id: 'zap_14', type: 'zaptie', name: 'Заптие', strength: 2 },
+  // Diamond — stronger Zaптие enter on rotations
+  { id: 'zap_15', type: 'zaptie', name: 'Заптие', strength: 3, silverDiamond: true },
+  { id: 'zap_16', type: 'zaptie', name: 'Заптие', strength: 3, goldDiamond: true },
 ];
 
 export const ALL_CARDS: Card[] = [

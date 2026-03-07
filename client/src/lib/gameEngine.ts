@@ -247,7 +247,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const newActionsRemaining = state.actionsRemaining - 1;
       const newActionsUsed = state.actionsUsed + 1;
       const newTurnStep: TurnStep = newActionsRemaining <= 0 ? 'selection' : 'recruiting';
-      return {
+      // Immediately replenish the field slot from the deck
+      const afterRecruit = replenishField({
         ...state,
         field: newField,
         fieldFaceUp: newFieldFaceUp,
@@ -256,7 +257,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         actionsUsed: newActionsUsed,
         turnStep: newTurnStep,
         message: `Сигурно вербуване: взета карта "${card.name}"`,
-      };
+      });
+      return afterRecruit;
     }
 
     case 'RISKY_RECRUIT': {
@@ -460,7 +462,18 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         };
       });
 
-      return {
+      // Immediately replenish the field if a card was taken from it
+      const wasInField = state.field.some(c => c.id === targetCardId);
+      const afterRaise = wasInField ? replenishField({
+        ...state,
+        players,
+        field: newField,
+        fieldFaceUp: newFieldFaceUp,
+        usedCards: [...state.usedCards, ...discardedHayduti],
+        selectedCards: [],
+        canFormGroup: false,
+        message: `Издигнат "${targetCard.name}"!`,
+      }) : {
         ...state,
         players,
         field: newField,
@@ -470,6 +483,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         canFormGroup: false,
         message: `Издигнат "${targetCard.name}"!`,
       };
+      return afterRaise;
     }
 
     case 'SKIP_FORMING': {
