@@ -1,6 +1,6 @@
 # Хайдути — Card Game
 
-A web application for playing **Хайдути**, the Bulgarian historical card game about the revolutionary movement of the 19th century. Supports both local pass-and-play on a single device and online multiplayer via WebSockets.
+A web application for playing **Хайдути**, a Bulgarian historical card game about the revolutionary movement of the 19th century. Supports both local pass-and-play on a single device and online multiplayer via WebSockets.
 
 ---
 
@@ -8,21 +8,53 @@ A web application for playing **Хайдути**, the Bulgarian historical card 
 
 | Layer | Technology |
 |---|---|
-| Frontend | React 19, Tailwind CSS 4, Framer Motion, Wouter |
-| Backend | Node.js, Express 4, tRPC 11 |
+| Frontend | React 19, Tailwind CSS 4, Framer Motion, Wouter, esbuild |
+| Backend | NestJS 10, TypeORM, Passport |
 | Real-time | WebSocket (`ws` library) — game room channels |
-| Database | MySQL / TiDB (via Drizzle ORM) |
-| Auth | Manus OAuth (session cookie + JWT) |
-| Build | Vite 7, esbuild, TypeScript 5.9 |
+| Database | MySQL 8 (via TypeORM) |
+| Auth | Email/password (bcryptjs + JWT Bearer tokens) |
+| Build | esbuild (frontend JS), Tailwind CLI (CSS), NestJS CLI (backend) |
 | Testing | Vitest |
 
 ---
 
 ## Prerequisites
 
-- **Node.js** v22+ and **pnpm** v10+
-- A **MySQL-compatible database** (MySQL 8, MariaDB, or TiDB)
-- A **Manus OAuth application** (for user authentication) — or you can skip auth and use pass-and-play mode only
+- **Node.js** v22+ and **npm** v10+
+- **Docker** (for the database) — or a **MySQL-compatible database** (MySQL 8, MariaDB, or TiDB) running locally
+
+---
+
+## Project Structure
+
+```
+frontend/               ← React SPA (esbuild + Tailwind CLI)
+  src/
+    pages/              ← Home, Login, Register, Setup, Game, Lobby, WaitingRoom, MultiplayerGame
+    components/ui/      ← shadcn/ui component library
+    api/                ← Fetch-based REST client (auth, rooms)
+    hooks/              ← useAuth (JWT from localStorage)
+    contexts/           ← WebSocketContext, ThemeContext
+  public/               ← Static assets, index.html
+  esbuild.config.mjs    ← Production JS build
+  dev-server.mjs        ← Dev server with proxy to backend
+
+backend/                ← NestJS REST API + WebSocket gateway
+  src/
+    auth/               ← JWT strategy, login/register controller
+    users/              ← User entity and service
+    rooms/              ← Room CRUD, room-player management
+    game/               ← Game state entity, service, WebSocket gateway
+    database/           ← TypeORM module (MySQL connection)
+    main.ts             ← Bootstrap (CORS, validation, WS adapter)
+    app.module.ts       ← Root module
+
+shared/                 ← Code shared by frontend and backend
+  gameData.ts           ← Card types, definitions, trait IDs
+  gameEngine.ts         ← Game state reducer (authoritative)
+  api-types.ts          ← REST API request/response interfaces
+  const.ts              ← Shared constants
+```
 
 ---
 
@@ -35,130 +67,205 @@ git clone <your-repo-url>
 cd haiduti-game
 ```
 
-### 2. Install dependencies
+### 2. Start the database
 
 ```bash
-pnpm install
+docker compose up -d
 ```
 
-### 3. Configure environment variables
+This starts a MySQL 8 container and automatically creates the `haiduti` database. The default credentials are `haiduti` / `haiduti` on port 3306.
 
-Create a `.env` file in the project root with the following variables:
+### 3. Configure backend environment
+
+Create a `.env` file in the `backend/` directory:
 
 ```env
-# ── Required ──────────────────────────────────────────────────────────────────
+# MySQL connection string (matches docker-compose defaults)
+DATABASE_URL="mysql://haiduti:haiduti@localhost:3306/haiduti"
 
-# MySQL / TiDB connection string
-DATABASE_URL="mysql://user:password@localhost:3306/haiduti"
-
-# Secret used to sign session cookies (any long random string)
+# Secret used to sign JWT tokens (any long random string)
 JWT_SECRET="your-random-secret-here"
 
-# ── Manus OAuth (required for user login) ─────────────────────────────────────
-# Register your app at https://manus.im to obtain these values.
-# If you only want pass-and-play mode, you can leave these blank —
-# the game will still work without authentication.
-
-VITE_APP_ID=""
-OAUTH_SERVER_URL="https://api.manus.im"
-VITE_OAUTH_PORTAL_URL="https://manus.im"
-OWNER_OPEN_ID=""
-OWNER_NAME=""
-
-# ── Optional (Manus built-in APIs) ────────────────────────────────────────────
-BUILT_IN_FORGE_API_URL=""
-BUILT_IN_FORGE_API_KEY=""
-VITE_FRONTEND_FORGE_API_KEY=""
-VITE_FRONTEND_FORGE_API_URL=""
+# Server port (default 3000)
+PORT=3000
 ```
 
-### 4. Push the database schema
+### 4. Install dependencies
 
 ```bash
-pnpm db:push
+# Backend
+cd backend
+npm install
+
+# Frontend (in a separate terminal)
+cd frontend
+npm install
 ```
 
-This runs `drizzle-kit generate && drizzle-kit migrate` and creates the following tables: `users`, `rooms`, `room_players`, `game_states`.
-
-### 5. Start the development server
+### 5. Start the backend
 
 ```bash
-pnpm dev
+cd backend
+npm run start:dev
 ```
 
-The app will be available at **http://localhost:3000**. Both the Express API and the Vite dev server run on the same port through the built-in proxy.
+The NestJS server starts on **http://localhost:3000** with file watching enabled. TypeORM `synchronize: false` — schema must already exist in the database.
+
+### 6. Start the frontend
+
+```bash
+cd frontend
+npm run dev
+```
+
+The dev server starts on **http://localhost:5173** and proxies `/api/*` and `/ws` requests to the backend at `localhost:3000`.
+
+Open **http://localhost:5173** in your browser.
 
 ---
 
 ## Available Scripts
 
+### Frontend (`frontend/`)
+
 | Command | Description |
 |---|---|
-| `pnpm dev` | Start development server with hot reload |
-| `pnpm build` | Build for production (outputs to `dist/`) |
-| `pnpm start` | Run the production build |
-| `pnpm test` | Run Vitest unit tests |
-| `pnpm check` | TypeScript type-check without emitting |
-| `pnpm db:push` | Generate and apply Drizzle migrations |
-| `pnpm format` | Format all files with Prettier |
+| `npm run dev` | Start dev server with esbuild watch + Tailwind watch + API proxy |
+| `npm run build` | Production build: Tailwind CLI → `dist/bundle.css`, esbuild → `dist/bundle.js` |
+| `npm run build:css` | Build CSS only (Tailwind CLI) |
+| `npm run build:js` | Build JS only (esbuild) |
+
+### Backend (`backend/`)
+
+| Command | Description |
+|---|---|
+| `npm run start:dev` | Start NestJS in watch mode (hot reload) |
+| `npm run start:debug` | Start with debug + watch mode |
+| `npm run build` | Compile TypeScript via NestJS CLI |
+| `npm run start:prod` | Run compiled production build (`dist/main.js`) |
 
 ---
 
-## Project Structure
+## Authentication
 
-```
-client/
-  src/
-    pages/          ← Home, Setup, Game, Lobby, WaitingRoom, MultiplayerGame
-    contexts/       ← WebSocketContext (real-time game state)
-    lib/            ← gameData.ts (card definitions), gameEngine.ts (local reducer)
-drizzle/
-  schema.ts         ← Database tables (users, rooms, room_players, game_states)
-server/
-  _core/            ← Express + Vite bridge, OAuth, JWT, tRPC context
-  db.ts             ← Drizzle query helpers
-  routers.ts        ← tRPC root router
-  roomRouter.ts     ← Room management procedures (create, join, leave, list)
-  wsServer.ts       ← WebSocket server (room channels, game action dispatch)
-shared/
-  gameData.ts       ← Card types and definitions (shared by client and server)
-  gameEngine.ts     ← Game state reducer (authoritative, runs server-side)
-  const.ts          ← Shared constants
-```
+The app uses **email/password** authentication with JWT Bearer tokens. Tokens are stored in `localStorage` and sent via the `Authorization: Bearer <token>` header.
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/api/auth/register` | POST | Create account (email, password, name) → returns `{ token, user }` |
+| `/api/auth/login` | POST | Authenticate → returns `{ token, user }` |
+| `/api/auth/logout` | POST | No-op (client clears localStorage) |
+| `/api/auth/me` | GET | Return current user from JWT (or 401) |
+
+- Passwords hashed with **bcryptjs** (12 salt rounds)
+- JWT signed with HS256, 7-day expiry
+- No cookies — tokens passed explicitly by the client
 
 ---
 
 ## Game Modes
 
-**Pass-and-Play (local)** — No login required. Go to the home page, click "Нова игра", enter 2–6 player names, choose game length, and play on a single device by passing it between players.
+### Pass-and-Play (local)
 
-**Multiplayer (online)** — Requires Manus OAuth login. Go to "Лоби", create a room or join one with a 6-character code. The host starts the game once all players have joined. Game state is managed server-side and broadcast to all players via WebSocket.
+No login required. Go to the home page, click "Нова игра", enter 2-6 player names, choose game length, and play on a single device by passing it between players. The game engine runs entirely client-side via a React `useReducer`.
+
+### Multiplayer (online)
+
+Requires email/password registration. Go to "Лоби", create a room or join one with a 6-character code. The host starts the game once 2+ players have joined. Game state is managed server-side (authoritative reducer) and broadcast to all players via WebSocket.
 
 ---
 
-## Running Tests
+## Online Play — WebSocket Protocol
 
-```bash
-pnpm test
-```
+The WebSocket gateway runs on the same HTTP server at the `/ws` path.
 
-Tests are located in `server/*.test.ts`. The test suite covers room creation, joining, leaving, capacity limits, and session restore logic.
+### Client → Server
+
+| Message Type | Payload | Purpose |
+|---|---|---|
+| `AUTH` | `{ token }` | Authenticate with JWT token |
+| `JOIN_ROOM` | `{ roomCode }` | Join a room by 6-char code |
+| `START_GAME` | `{}` | Host starts the game |
+| `ACTION` | `{ payload: GameAction }` | Dispatch a game action |
+| `PING` | `{}` | Keep-alive heartbeat |
+
+### Server → Client
+
+| Message Type | Payload | Purpose |
+|---|---|---|
+| `AUTH_OK` | `{ userId, name }` | Auth succeeded |
+| `ROOM_STATE` | `{ room, players[], gameState? }` | Full room snapshot on join |
+| `STATE_UPDATE` | `{ gameState, version }` | Game state changed (broadcast) |
+| `PLAYER_JOINED` | `{ player }` | New player joined |
+| `PLAYER_LEFT` | `{ userId, playerName }` | Player disconnected |
+| `PLAYER_RECONNECTED` | `{ userId, playerName }` | Player reconnected |
+| `GAME_STARTED` | `{ gameState }` | Game started by host |
+| `GAME_OVER` | `{}` | Game finished |
+| `ERROR` | `{ message }` | Error message |
+
+### Room Lifecycle
+
+`waiting` → `playing` → `finished`
+
+1. Host creates room (name, game length, max players 2-6) → 6-char code generated
+2. Players join by code → assigned sequential seat indices
+3. Host sends `START_GAME` → server creates initial `GameState`, broadcasts `GAME_STARTED`
+4. Players take turns sending `ACTION` → server validates turn order, applies action via reducer, broadcasts `STATE_UPDATE`
+5. Game reaches scoring phase → room status set to `finished`
+
+---
+
+## Game Mechanics
+
+### Card Types
+
+| Type | Description |
+|---|---|
+| **Хайдут** (haydut) | Fighters with strength 2 or 3, in four colors |
+| **Войвода** (voyvoda) | Leaders that can be raised for bonus points |
+| **Деец** (deyets) | Revolutionary heroes with unique traits |
+| **Заптие** (zaptie) | Ottoman police — reveal your committee or cause defeat |
+
+### Player Stats
+
+| Stat | Effect | Range |
+|---|---|---|
+| **Набор** (nabor) | Hand size limit | 4-10 |
+| **Дейност** (deynost) | Actions per turn | 4-10 |
+| **Бойна** (boyna) | Combat power vs Заптие | 4-10 |
+
+### Turn Flow
+
+`recruiting` → `selection` → `forming` → `end`
+
+1. **Recruiting**: Scout field cards, safe/risky recruit, spend actions
+2. **Selection**: Discard cards if over hand limit (or optionally discard extras)
+3. **Forming**: Form groups of 3+ same-color cards to upgrade stats or raise Войводи/Дейци
+4. **End**: Resolve end-of-turn trait effects, advance to next player
+
+---
+
+## Database Schema
+
+| Table | Purpose |
+|---|---|
+| `users` | Registered accounts (email, passwordHash, name, role) |
+| `rooms` | Game rooms (code, hostId, status, gameLength, maxPlayers) |
+| `room_players` | Players in rooms (userId, seatIndex, isConnected) |
+| `game_states` | Serialized game state per room (stateJson, version) |
 
 ---
 
 ## Production Build
 
 ```bash
-pnpm build
-pnpm start
+# Build frontend
+cd frontend
+npm run build
+
+# Build backend
+cd backend
+npm run build
 ```
 
-The build step compiles the React frontend with Vite and bundles the Express server with esbuild. Both outputs land in `dist/`. The server serves the frontend as static files in production.
-
----
-
-## Notes
-
-- The WebSocket server attaches to the same HTTP server as Express at the path `/ws`. No separate port is needed.
-- Session cookies are `httpOnly` and `SameSite=None; Secure` — HTTPS is required in production for cross-origin cookie handling.
-- The Vite HMR WebSocket is configured to connect through a reverse proxy on port 443 (`hmr.clientPort: 443`). If you run locally without a proxy, remove the `hmr` block from `vite.config.ts`.
+Serve the frontend `dist/` directory with any static file server (nginx, caddy, etc.) and run the backend with `npm run start:prod`. Configure the frontend's API proxy to point to the backend host.
