@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import * as esbuild from 'esbuild';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -7,7 +8,7 @@ import { spawn } from 'child_process';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 5173;
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3001';
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000';
 
 // Start Tailwind CSS in watch mode
 const tailwindProc = spawn(
