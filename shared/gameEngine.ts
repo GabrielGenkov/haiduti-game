@@ -262,12 +262,12 @@ function handleZaptieEncounter(state: GameState, zaptieCard: Card): GameState {
       // Поп Харитон: player can form 1 group before discarding
       const players = state.players.map((p, i) =>
         i === state.currentPlayerIndex
-          ? { ...p, isRevealed: true, hand: hasPetko ? p.hand : [] }
+          ? { ...p, isRevealed: true, hand: (hasPetko || hasPop) ? p.hand : [] }
           : p
       );
 
       const panayotTrigger = panayotPlayerIndex >= 0 && player.hand.length > 0
-        ? { beneficiaryPlayerIndex: panayotPlayerIndex, defeatedPlayerIndex: state.currentPlayerIndex }
+        ? { beneficiaryPlayerIndex: panayotPlayerIndex, defeatedPlayerIndex: state.currentPlayerIndex, availableCards: [...player.hand] }
         : undefined;
 
       return {
@@ -896,34 +896,25 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     // ── ПАНАЙОТ ХИТОВ: pick cards ──────────────────────────────
     case 'PANAYOT_PICK_CARD': {
       if (!state.panayotTrigger) return state;
-      const { beneficiaryPlayerIndex, defeatedPlayerIndex } = state.panayotTrigger;
+      const { beneficiaryPlayerIndex, defeatedPlayerIndex, availableCards } = state.panayotTrigger;
       const beneficiary = state.players[beneficiaryPlayerIndex];
-      const defeated = state.players[defeatedPlayerIndex];
 
-      const pickedCard = defeated.hand.find(c => c.id === action.cardId);
+      const pickedCard = availableCards.find(c => c.id === action.cardId);
       if (!pickedCard) return state;
 
-      // Count how many cards beneficiary has already picked this trigger (max 2)
-      // We track this by checking if the card is still in defeated's hand
-      const newDefeatedHand = defeated.hand.filter(c => c.id !== action.cardId);
+      const newAvailableCards = availableCards.filter(c => c.id !== action.cardId);
       const newBeneficiaryHand = [...beneficiary.hand, pickedCard];
 
       const players = state.players.map((p, i) => {
-        if (i === defeatedPlayerIndex) return { ...p, hand: newDefeatedHand };
         if (i === beneficiaryPlayerIndex) return { ...p, hand: newBeneficiaryHand };
         return p;
       });
 
-      // Check if beneficiary has picked 2 cards already
-      const pickedCount = newBeneficiaryHand.length - (beneficiary.hand.length);
-      // We need to track picks — use a simple approach: if beneficiary already picked 2 (original hand + 2), close trigger
-      // Actually count: original defeated hand minus current = cards picked
-      const originalDefeatedCount = state.players[defeatedPlayerIndex].hand.length;
-      const pickedSoFar = originalDefeatedCount - newDefeatedHand.length;
+      const pickedSoFar = state.panayotTrigger.availableCards.length - newAvailableCards.length;
 
-      const newPanayotTrigger = pickedSoFar >= 2 || newDefeatedHand.length === 0
+      const newPanayotTrigger = pickedSoFar >= 2 || newAvailableCards.length === 0
         ? undefined
-        : state.panayotTrigger;
+        : { ...state.panayotTrigger, availableCards: newAvailableCards };
 
       return {
         ...state,
@@ -931,7 +922,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         panayotTrigger: newPanayotTrigger,
         message: newPanayotTrigger
           ? `Панайот Хитов: взета карта "${pickedCard.name}". Избери още 1.`
-          : `Панайот Хитов: взети 2 карти от разбития комитет.`,
+          : `Панайот Хитов: взети ${pickedSoFar} карти от разбития комитет.`,
       };
     }
 

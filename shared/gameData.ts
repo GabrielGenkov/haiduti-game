@@ -107,6 +107,7 @@ export interface GameState {
   panayotTrigger?: {
     beneficiaryPlayerIndex: number; // who gets to pick 2 cards
     defeatedPlayerIndex: number;    // whose cards to pick from
+    availableCards: Card[];         // snapshot of defeated player's hand at trigger time
   };
   // Поп Харитон: forming step during defeat resolution
   popHaritonForming: boolean;

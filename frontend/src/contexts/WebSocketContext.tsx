@@ -113,6 +113,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
         break;
       case 'GAME_STARTED':
         setGameState(msg.gameState);
+        setRoom(prev => prev ? { ...prev, status: 'playing' } : null);
         break;
       case 'PLAYER_JOINED':
         setPlayers(prev => {

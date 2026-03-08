@@ -407,7 +407,7 @@ function PanayotOverlay({ state, dispatch }: { state: GameState; dispatch: React
   const trigger = state.panayotTrigger!;
   const defeated = state.players[trigger.defeatedPlayerIndex];
   const beneficiary = state.players[trigger.beneficiaryPlayerIndex];
-  const originalCount = defeated.hand.length;
+  const { availableCards } = trigger;
 
   return (
     <motion.div
@@ -426,11 +426,11 @@ function PanayotOverlay({ state, dispatch }: { state: GameState; dispatch: React
             {beneficiary.name} избира до 2 карти от разбития комитет на {defeated.name}
           </p>
           <p className="font-source text-xs mt-1" style={{ color: 'oklch(0.55 0.03 65)' }}>
-            Взети: {originalCount - defeated.hand.length}/2
+            Остават: {availableCards.length} карти
           </p>
         </div>
         <div className="flex flex-wrap gap-2 justify-center mb-4">
-          {defeated.hand.map(card => (
+          {availableCards.map(card => (
             <GameCard
               key={card.id}
               card={card}
@@ -484,7 +484,10 @@ export default function Game({ externalState, externalDispatch, localPlayerIndex
   const [hadzhiMode, setHadzhiMode] = useState(false); // selecting Zaптие to remove
 
   const state = gameState;
+  const isMultiplayer = localPlayerIndex !== undefined;
+  const isMyTurn = isMultiplayer ? localPlayerIndex === state.currentPlayerIndex : true;
   const player = state.players[state.currentPlayerIndex];
+  const handPlayer = isMultiplayer ? state.players[localPlayerIndex] : player;
 
   // When turn changes, show pass device screen
   const [lastPlayerIndex, setLastPlayerIndex] = useState(state.currentPlayerIndex);
@@ -500,7 +503,7 @@ export default function Game({ externalState, externalDispatch, localPlayerIndex
     return <ScoringScreen state={state} onNewGame={() => navigate('/setup')} />;
   }
 
-  if (showPassDevice) {
+  if (showPassDevice && !isMultiplayer) {
     return (
       <PassDeviceScreen
         playerName={player.name}
@@ -510,9 +513,12 @@ export default function Game({ externalState, externalDispatch, localPlayerIndex
     );
   }
 
-  // Панайот overlay
+  // Панайот overlay — only the beneficiary sees the full picker in multiplayer
   if (state.panayotTrigger) {
-    return <PanayotOverlay state={state} dispatch={dispatch} />;
+    const isBeneficiary = !isMultiplayer || localPlayerIndex === state.panayotTrigger.beneficiaryPlayerIndex;
+    if (isBeneficiary) {
+      return <PanayotOverlay state={state} dispatch={dispatch} />;
+    }
   }
 
   // Compute group info for selected cards
@@ -529,9 +535,9 @@ export default function Game({ externalState, externalDispatch, localPlayerIndex
     state.fieldFaceUp[i] && (c.type === 'voyvoda' || c.type === 'deyets')
   );
 
-  const canDoActions = state.turnStep === 'recruiting' && state.actionsRemaining > 0 && !state.zaptieTrigger;
-  const isSelectionStep = state.turnStep === 'selection';
-  const isFormingStep = state.turnStep === 'forming';
+  const canDoActions = isMyTurn && state.turnStep === 'recruiting' && state.actionsRemaining > 0 && !state.zaptieTrigger;
+  const isSelectionStep = isMyTurn && state.turnStep === 'selection';
+  const isFormingStep = isMyTurn && state.turnStep === 'forming';
   const effectiveNabor = player.stats.nabor + (player.dyadoIlyoActive ? 2 : 0);
   const needsDiscard = isSelectionStep && player.hand.length > effectiveNabor;
 
@@ -614,6 +620,11 @@ export default function Game({ externalState, externalDispatch, localPlayerIndex
             <div className="flex-1 min-w-0">
               <div className="font-cinzel font-bold" style={{ color: 'oklch(0.88 0.03 75)' }}>
                 {player.name}
+                {isMultiplayer && (
+                  <span className="ml-2 font-source text-xs font-normal" style={{ color: isMyTurn ? '#6ee7a0' : 'oklch(0.55 0.03 65)' }}>
+                    {isMyTurn ? '— Твой ход!' : '— играе...'}
+                  </span>
+                )}
               </div>
               <div className="font-source text-xs" style={{ color: 'oklch(0.55 0.03 65)' }}>
                 {state.turnStep === 'recruiting' && `Вербуване — ${state.actionsRemaining} действия`}
@@ -658,7 +669,7 @@ export default function Game({ externalState, externalDispatch, localPlayerIndex
                 </span>
               )}
 
-              {state.turnStep === 'recruiting' && state.actionsUsed > 0 && (
+              {isMyTurn && state.turnStep === 'recruiting' && state.actionsUsed > 0 && (
                 <button
                   onClick={() => dispatch({ type: 'SKIP_ACTIONS' })}
                   className="px-3 py-1.5 rounded-lg font-source text-xs border transition-all hover:opacity-80"
@@ -684,7 +695,7 @@ export default function Game({ externalState, externalDispatch, localPlayerIndex
                   Край на хода
                 </button>
               )}
-              {state.popHaritonForming && (
+              {isMyTurn && state.popHaritonForming && (
                 <button
                   onClick={() => dispatch({ type: 'POP_HARITON_SKIP' })}
                   className="px-3 py-1.5 rounded-lg font-source text-xs border transition-all hover:opacity-80"
@@ -693,7 +704,7 @@ export default function Game({ externalState, externalDispatch, localPlayerIndex
                   ✝️ Пропусни група
                 </button>
               )}
-              {state.turnStep === 'end' && (
+              {isMyTurn && state.turnStep === 'end' && (
                 <button
                   onClick={() => dispatch({ type: 'END_TURN' })}
                   className="btn-action px-3 py-1.5 rounded-lg text-xs"
@@ -703,6 +714,14 @@ export default function Game({ externalState, externalDispatch, localPlayerIndex
               )}
             </div>
           </div>
+
+          {/* Panayot banner for non-beneficiary players in multiplayer */}
+          {isMultiplayer && state.panayotTrigger && localPlayerIndex !== state.panayotTrigger.beneficiaryPlayerIndex && (
+            <div className="rounded-xl border-2 p-3 text-center font-source text-sm animate-pulse"
+              style={{ background: 'oklch(0.18 0.04 55)', borderColor: '#fdba74', color: '#fdba74' }}>
+              🦊 Панайот Хитов: {state.players[state.panayotTrigger.beneficiaryPlayerIndex].name} избира карти от {state.players[state.panayotTrigger.defeatedPlayerIndex].name}...
+            </div>
+          )}
 
           {/* Message */}
           {state.message && (
@@ -856,7 +875,7 @@ export default function Game({ externalState, externalDispatch, localPlayerIndex
           >
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-cinzel text-sm font-semibold tracking-wider" style={{ color: 'oklch(0.60 0.05 78)' }}>
-                РЪКА ({player.hand.length}/{effectiveNabor})
+                {isMultiplayer && !isMyTurn ? `${handPlayer.name} — ` : ''}РЪКА ({handPlayer.hand.length}/{isMyTurn ? effectiveNabor : handPlayer.stats.nabor})
                 {needsDiscard && <span className="ml-2 text-red-400">— изчисти {player.hand.length - effectiveNabor}</span>}
                 {isPetkoSelection && <span className="ml-2" style={{ color: '#fca5a5' }}>— запазваш 2</span>}
               </h3>
@@ -884,12 +903,12 @@ export default function Game({ externalState, externalDispatch, localPlayerIndex
               )}
             </div>
 
-            {player.hand.length === 0 ? (
+            {handPlayer.hand.length === 0 ? (
               <p className="font-source text-sm italic" style={{ color: 'oklch(0.45 0.03 65)' }}>Ръката е празна</p>
             ) : (
               <div className="flex flex-wrap gap-2">
-                {player.hand.map(card => {
-                  const isSelected = state.selectedCards.includes(card.id);
+                {handPlayer.hand.map(card => {
+                  const isSelected = isMyTurn && state.selectedCards.includes(card.id);
                   const isSelectable = isFormingStep && card.type === 'haydut';
                   const isDiscardable = isSelectionStep;
                   const isRaisableFromHand = isFormingStep && isValidGroup && (card.type === 'voyvoda' || card.type === 'deyets');
