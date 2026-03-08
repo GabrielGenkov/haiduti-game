@@ -41,8 +41,9 @@ function parseDatabaseUrl(url: string) {
           password,
           database,
           entities: [User, Room, RoomPlayer, GameStateEntity],
+          migrations: [__dirname + '/migrations/*{.ts,.js}'],
           synchronize: false,
-          // CRITICAL: do NOT transform column names — the DB already uses camelCase
+          migrationsRun: true,
           entitySkipConstructor: true,
         };
       },
