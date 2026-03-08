@@ -177,7 +177,7 @@ export const HAYDUTI_CARDS: Card[] = [
 ];
 
 // Voyvoda cards: 17 cards
-// Per a.txt: 4×(cost4,pts2) regular + 5×(cost7,pts3) regular + 5×(cost10,pts5) silverDiamond + 3×(cost12,pts7) goldDiamond
+// Per cards.txt: 4×(cost4,pts2) regular + 5×(cost7,pts3) regular + 5×(cost10,pts5) silverDiamond + 3×(cost12,pts7) goldDiamond
 export const VOYVODA_CARDS: Card[] = [
   // Regular — available in initial deck
   { id: 'voy_1', type: 'voyvoda', name: 'Войвода', cost: 4, chetaPoints: 2 },
@@ -304,7 +304,7 @@ export const DEYETS_CARDS: Card[] = [
 ];
 
 // Zaptie cards: 16 cards
-// Per a.txt: 8×str1 regular + 6×str2 regular + 1×str3 silverDiamond + 1×str3 goldDiamond
+// Per cards.txt: 8×str1 regular + 6×str2 regular + 1×str3 silverDiamond + 1×str3 goldDiamond
 export const ZAPTIE_CARDS: Card[] = [
   // Regular — available in initial deck
   { id: 'zap_1', type: 'zaptie', name: 'Заптие', strength: 1 },
