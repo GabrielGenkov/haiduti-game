@@ -1,8 +1,8 @@
 // ============================================================
-// ХАЙДУТИ — Game Data & Types (re-export shim)
-// All logic has been decomposed into types/, constants/, utils/, traits/, scoring.ts, factory.ts
+// ХАЙДУТИ — Barrel Exports (Public API)
 // ============================================================
 
+// Types
 export type {
   CardColor,
   ContributionType,
@@ -18,8 +18,10 @@ export type {
   ActionType,
   GameState,
 } from './types/state';
+export type { GameAction } from './types/action';
 export type { PlayerScore } from './types/scoring';
 
+// Constants
 export {
   HAYDUTI_CARDS,
   VOYVODA_CARDS,
@@ -29,6 +31,7 @@ export {
 } from './constants/cards';
 export { STAT_TRACK, STAT_UPGRADE_COSTS } from './constants/stats';
 
+// Utility functions
 export { shuffle } from './utils/shuffle';
 export {
   getStatValue,
@@ -46,5 +49,13 @@ export {
 export { contributionLabel, colorLabel } from './utils/labels';
 export { getTotalZaptieBoyna } from './utils/field';
 
+// Trait system
+export { getTraitGroupBonus } from './traits/trait-registry';
+export type { TraitStrategy } from './traits/trait-registry';
+
+// Engine
+export { gameReducer } from './engine/reducer';
+
+// Scoring & Factory
 export { calculateScores } from './scoring';
 export { createInitialGameState } from './factory';
