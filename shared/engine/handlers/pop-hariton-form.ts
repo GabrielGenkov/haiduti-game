@@ -4,11 +4,11 @@ import { getGroupStrength } from '../../utils/groups';
 import { canFormGroupByContribution, canFormGroupByColor } from '../../utils/groups';
 import { getMaxReachableStatValue } from '../../utils/stats';
 import { getTraitGroupBonus } from '../../traits/trait-registry';
-import { advanceTurn } from '../helpers/advance-turn';
+import { continueDefeatResolution } from '../helpers/defeat-resolution';
 
 registerAction('POP_HARITON_FORM_GROUP', (state, action) => {
   if (!state.popHaritonForming) return state;
-  const { statType } = action as { type: 'POP_HARITON_FORM_GROUP'; statType: ContributionType };
+  const statType = (action as unknown as { statType: ContributionType }).statType;
   const player = state.players[state.currentPlayerIndex];
   const selectedHand = player.hand.filter(c => state.selectedCards.includes(c.id));
   const hayduti = selectedHand.filter(c => c.type === 'haydut');
@@ -37,26 +37,24 @@ registerAction('POP_HARITON_FORM_GROUP', (state, action) => {
       : p
   );
 
-  return advanceTurn({
+  return continueDefeatResolution({
     ...state,
     players,
     selectedCards: [],
     popHaritonForming: false,
-    turnStep: 'end',
+    turnStep: 'selection',
+    canFormGroup: false,
     message: `Поп Харитон: подобрен "${statType}" до ${targetValue}. Комитетът е изчистен.`,
   });
 });
 
 registerAction('POP_HARITON_SKIP', (state) => {
   if (!state.popHaritonForming) return state;
-  const players = state.players.map((p, i) =>
-    i === state.currentPlayerIndex ? { ...p, hand: [] } : p
-  );
-  return advanceTurn({
+  return continueDefeatResolution({
     ...state,
-    players,
+    turnStep: 'selection',
+    canFormGroup: false,
+    selectedCards: [],
     popHaritonForming: false,
-    turnStep: 'end',
-    message: 'Поп Харитон: пропуснато. Комитетът е изчистен.',
   });
 });

@@ -234,15 +234,14 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const sortedPlayers = players.sort((a, b) => a.seatIndex - b.seatIndex);
     const currentPlayer = sortedPlayers[gameState.currentPlayerIndex];
 
-    // Allow Panayot actions from the beneficiary (not the current turn player)
-    if (
-      gameState.panayotTrigger &&
-      (payload.type === 'PANAYOT_PICK_CARD' || payload.type === 'PANAYOT_SKIP')
-    ) {
-      const beneficiarySeat = gameState.panayotTrigger.beneficiaryPlayerIndex;
-      const beneficiaryPlayer = sortedPlayers[beneficiarySeat];
-      if (!beneficiaryPlayer || beneficiaryPlayer.userId !== info.userId) {
-        this.send(client, { type: 'ERROR', message: 'Not the Panayot beneficiary' });
+    const pendingDecisionOwner =
+      gameState.pendingDecision?.ownerPlayerIndex !== undefined
+        ? sortedPlayers[gameState.pendingDecision.ownerPlayerIndex]
+        : null;
+
+    if (pendingDecisionOwner) {
+      if (pendingDecisionOwner.userId !== info.userId) {
+        this.send(client, { type: 'ERROR', message: 'Not the active decision owner' });
         return;
       }
     } else if (!currentPlayer || currentPlayer.userId !== info.userId) {

@@ -3,7 +3,7 @@ import { DeyetsTraitId } from '../../types/card';
 import { validateGroupForRaise, resolveGroupDiscard } from '../helpers/group-validation';
 import { replenishField } from '../helpers/replenish-field';
 
-/** Map a Деец card ID to its trait ID */
+/** Map a Deец card ID to its trait ID */
 function cardIdToTrait(cardId: string): DeyetsTraitId | null {
   const map: Record<string, DeyetsTraitId> = {
     dey_hristo: 'hristo_botev',
@@ -69,16 +69,39 @@ registerAction('FORM_GROUP_RAISE_CARD', (state, action) => {
   const traitMsg = newTrait ? ` Придобита черта: ${targetCard.name}!` : '';
   const rakowskiMsg = player.traits.includes('rakowski') && !player.isRevealed ? ' Раковски: запазена 1 карта.' : '';
 
-  const baseResult = {
+  let baseResult: typeof state = {
     ...state,
     players,
     field: newField,
     fieldFaceUp: newFieldFaceUp,
     usedCards: [...state.usedCards, ...discardedHayduti],
-    selectedCards: [],
+    selectedCards: [] as string[],
     canFormGroup: false,
     message: `Издигнат "${targetCard.name}"!${traitMsg}${rakowskiMsg}`,
   };
 
-  return wasInField ? replenishField(baseResult) : baseResult;
+  if (wasInField) {
+    baseResult = replenishField(baseResult);
+  }
+
+  // If Lyuben was just raised, prompt for stat choice
+  if (targetCardId === 'dey_lyuben') {
+    const updatedPlayer = baseResult.players[state.currentPlayerIndex];
+    if (!updatedPlayer.lyubenStatChoice) {
+      return {
+        ...baseResult,
+        pendingDecision: {
+          id: `lyuben-${Date.now()}`,
+          kind: 'stat_choice',
+          ownerPlayerIndex: state.currentPlayerIndex,
+          prompt: 'Избери показателя за края на играта на Любен Каравелов.',
+          selectableStats: ['nabor', 'deynost', 'boyna'],
+          context: {},
+        },
+        message: 'Любен Каравелов: избери показател за крайния бонус.',
+      };
+    }
+  }
+
+  return baseResult;
 });

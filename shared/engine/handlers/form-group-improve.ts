@@ -2,6 +2,7 @@ import { registerAction } from '../action-registry';
 import { ContributionType } from '../../types/card';
 import { getMaxReachableStatValue } from '../../utils/stats';
 import { validateGroupForStat, resolveGroupDiscard } from '../helpers/group-validation';
+import { continueDefeatResolution } from '../helpers/defeat-resolution';
 
 registerAction('FORM_GROUP_IMPROVE_STAT', (state, action) => {
   if (state.turnStep !== 'forming') return state;
@@ -17,6 +18,23 @@ registerAction('FORM_GROUP_IMPROVE_STAT', (state, action) => {
   const { newHand, discarded } = resolveGroupDiscard(player, validation.hayduti, state.selectedCards);
 
   const newStats = { ...player.stats, [statType]: targetValue };
+
+  // During defeat (Pop Hariton forming), discard all remaining cards and continue resolution
+  if (state.defeatContext) {
+    const players = state.players.map((p, i) =>
+      i === state.currentPlayerIndex ? { ...p, stats: newStats, hand: [] } : p
+    );
+    return continueDefeatResolution({
+      ...state,
+      players,
+      usedCards: [...state.usedCards, ...discarded, ...newHand],
+      selectedCards: [] as string[],
+      popHaritonForming: false,
+      canFormGroup: false,
+      message: `Поп Харитон: подобрен "${statType}" до ${targetValue}. Комитетът е изчистен.`,
+    });
+  }
+
   const players = state.players.map((p, i) =>
     i === state.currentPlayerIndex ? { ...p, stats: newStats, hand: newHand } : p
   );
@@ -28,7 +46,7 @@ registerAction('FORM_GROUP_IMPROVE_STAT', (state, action) => {
     ...state,
     players,
     usedCards: [...state.usedCards, ...discarded],
-    selectedCards: [],
+    selectedCards: [] as string[],
     canFormGroup: false,
     message: `Подобрен показател "${statType}" до ${targetValue}!${bonusMsg}${rakowskiMsg}`,
   };

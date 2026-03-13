@@ -1,6 +1,5 @@
 // ============================================================
-// ХАЙДУТИ — Game Engine (re-export shim)
-// All logic has been decomposed into engine/, traits/
+// HAYDUTI - Game Engine
 // ============================================================
 
 export { gameReducer } from './engine/reducer';

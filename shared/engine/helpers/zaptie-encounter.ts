@@ -1,5 +1,5 @@
-import { GameState, TurnStep } from '../../types/state';
-import { Card } from '../../types/card';
+import { GameState } from '../../types/state';
+import { Card, DeyetsTraitId } from '../../types/card';
 import { getActiveTraits } from '../../traits/trait-registry';
 import { getTotalZaptieBoyna } from '../../utils/field';
 import { replenishField } from './replenish-field';
@@ -7,12 +7,38 @@ import { replenishField } from './replenish-field';
 export function handleZaptieEncounter(state: GameState, zaptieCard: Card): GameState {
   const player = state.players[state.currentPlayerIndex];
 
-  // Let traits intercept the Zaptie (Vasil Levski, Dyado Ilyo)
+  // Collect all traits that can intercept this Zaptie
+  const interceptingTraits: { id: DeyetsTraitId; result: GameState }[] = [];
   for (const trait of getActiveTraits(player)) {
     if (trait.onZaptieEncounter) {
       const result = trait.onZaptieEncounter(state, zaptieCard);
-      if (result) return replenishField(result);
+      if (result) {
+        interceptingTraits.push({ id: trait.id, result });
+      }
     }
+  }
+
+  // If multiple traits can intercept, open a choice decision
+  if (interceptingTraits.length > 1) {
+    return {
+      ...state,
+      pendingDecision: {
+        id: `trait-choice-${Date.now()}`,
+        kind: 'trait_choice',
+        ownerPlayerIndex: state.currentPlayerIndex,
+        prompt: 'Избери коя способност да приложиш срещу Заптието.',
+        options: interceptingTraits.map(t => t.id),
+        context: {
+          encounteredCardId: zaptieCard.id,
+        },
+      },
+      message: 'Няколко способности могат да се приложат. Избери една.',
+    };
+  }
+
+  // If exactly one trait intercepts, apply it directly
+  if (interceptingTraits.length === 1) {
+    return replenishField(interceptingTraits[0].result);
   }
 
   const wasSecret = !player.isRevealed;

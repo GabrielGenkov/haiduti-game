@@ -454,6 +454,177 @@ function PanayotOverlay({ state, dispatch }: { state: GameState; dispatch: React
   );
 }
 
+type ActiveDecision = NonNullable<GameState['pendingDecision']>;
+
+function findCardById(state: GameState, cardId: string): Card | undefined {
+  const handCard = state.players.flatMap(player => player.hand).find(card => card.id === cardId);
+  return handCard ?? state.field.find(card => card.id === cardId) ?? state.sideField.find(card => card.id === cardId);
+}
+
+function DecisionOverlay({ state, dispatch }: { state: GameState; dispatch: React.Dispatch<GameAction> }) {
+  const decision = state.pendingDecision as ActiveDecision | undefined;
+  const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    setSelectedCardIds([]);
+  }, [decision?.id]);
+
+  if (!decision) return null;
+
+  const submit = (payload: Partial<Extract<GameAction, { type: 'RESOLVE_DECISION' }>> = {}) => {
+    dispatch({
+      type: 'RESOLVE_DECISION',
+      decisionId: decision.id,
+      ...payload,
+    } as GameAction);
+  };
+
+  const title =
+    decision.kind === 'trait_choice'
+      ? 'Избор на черта'
+      : decision.kind === 'card_choice'
+      ? 'Избор на карти'
+      : decision.kind === 'contribution_choice'
+      ? 'Избор на принос'
+      : decision.kind === 'stat_choice'
+      ? 'Избор на показател'
+      : 'Потвърждение';
+
+  const toggleCard = (cardId: string, maxChoices: number) => {
+    setSelectedCardIds(current => {
+      if (current.includes(cardId)) return current.filter(id => id !== cardId);
+      if (maxChoices <= 1) return [cardId];
+      if (current.length >= maxChoices) return current;
+      return [...current, cardId];
+    });
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4"
+    >
+      <div
+        className="w-full max-w-2xl rounded-2xl border-2 p-6"
+        style={{ background: 'oklch(0.18 0.04 55)', borderColor: '#fbbf24' }}
+      >
+        <div className="text-center mb-5">
+          <h3 className="font-cinzel text-xl font-bold" style={{ color: '#fbbf24' }}>
+            {title}
+          </h3>
+          <p className="font-source text-sm mt-2" style={{ color: 'oklch(0.78 0.03 75)' }}>
+            {decision.prompt}
+          </p>
+        </div>
+
+        {decision.kind === 'trait_choice' && (
+          <div className="flex flex-wrap justify-center gap-3">
+            {decision.options.map(traitId => (
+              <button
+                key={traitId}
+                onClick={() => submit({ traitId })}
+                className="rounded-xl border px-4 py-3 text-left transition-all hover:opacity-90"
+                style={{ background: 'oklch(0.23 0.04 55)', borderColor: `${TRAIT_META[traitId].color}80` }}
+              >
+                <div className="font-cinzel text-sm font-semibold" style={{ color: TRAIT_META[traitId].color }}>
+                  {TRAIT_META[traitId].icon} {TRAIT_META[traitId].label}
+                </div>
+                <div className="font-source text-xs mt-1" style={{ color: 'oklch(0.65 0.03 70)' }}>
+                  {TRAIT_META[traitId].shortDesc}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {decision.kind === 'card_choice' && (
+          <>
+            <div className="flex flex-wrap justify-center gap-2 mb-4">
+              {decision.selectableCardIds.map(cardId => {
+                const card = findCardById(state, cardId);
+                if (!card) return null;
+                const isSelected = selectedCardIds.includes(cardId);
+                return (
+                  <GameCard
+                    key={cardId}
+                    card={card}
+                    isSelected={isSelected}
+                    isSelectable
+                    highlight={isSelected ? 'pick' : undefined}
+                    onClick={() => toggleCard(cardId, decision.maxChoices)}
+                  />
+                );
+              })}
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="font-source text-xs" style={{ color: 'oklch(0.60 0.03 68)' }}>
+                Избрани: {selectedCardIds.length}/{decision.maxChoices}
+              </div>
+              <div className="flex gap-2">
+                {decision.minChoices === 0 && (
+                  <button
+                    onClick={() => submit({ cardIds: [] })}
+                    className="px-4 py-2 rounded-lg font-source text-sm border transition-all hover:opacity-80"
+                    style={{ borderColor: 'oklch(0.40 0.04 55)', color: 'oklch(0.65 0.03 70)', background: 'oklch(0.24 0.03 55)' }}
+                  >
+                    Пропусни
+                  </button>
+                )}
+                <button
+                  onClick={() => submit({ cardIds: selectedCardIds })}
+                  disabled={selectedCardIds.length < decision.minChoices}
+                  className="btn-action px-4 py-2 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Потвърди
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
+        {decision.kind === 'contribution_choice' && (
+          <div className="flex flex-wrap justify-center gap-3">
+            {decision.selectableContributions.map(contribution => (
+              <button
+                key={contribution}
+                onClick={() => submit({ contribution })}
+                className="rounded-xl border px-4 py-3 font-cinzel text-sm font-semibold transition-all hover:opacity-90"
+                style={{ background: 'oklch(0.23 0.04 55)', borderColor: 'oklch(0.48 0.09 148)', color: 'oklch(0.88 0.02 80)' }}
+              >
+                {contributionLabel(contribution)}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {decision.kind === 'stat_choice' && (
+          <div className="flex flex-wrap justify-center gap-3">
+            {decision.selectableStats.map(statType => (
+              <button
+                key={statType}
+                onClick={() => submit({ statType })}
+                className="rounded-xl border px-4 py-3 font-cinzel text-sm font-semibold transition-all hover:opacity-90"
+                style={{ background: 'oklch(0.23 0.04 55)', borderColor: 'oklch(0.48 0.09 78)', color: '#fbbf24' }}
+              >
+                {contributionLabel(statType)}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {decision.kind === 'acknowledge' && (
+          <div className="text-center">
+            <button onClick={() => submit()} className="btn-action px-6 py-2 rounded-lg text-sm">
+              Продължи
+            </button>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
 // ============================================================
 // MAIN GAME COMPONENT
 // ============================================================
@@ -488,6 +659,9 @@ export default function Game({ externalState, externalDispatch, localPlayerIndex
   const isMyTurn = isMultiplayer ? localPlayerIndex === state.currentPlayerIndex : true;
   const player = state.players[state.currentPlayerIndex];
   const handPlayer = isMultiplayer ? state.players[localPlayerIndex] : player;
+  const pendingDecision = state.pendingDecision;
+  const ownsPendingDecision =
+    !pendingDecision || !isMultiplayer || localPlayerIndex === pendingDecision.ownerPlayerIndex;
 
   // When turn changes, show pass device screen
   const [lastPlayerIndex, setLastPlayerIndex] = useState(state.currentPlayerIndex);
@@ -514,43 +688,49 @@ export default function Game({ externalState, externalDispatch, localPlayerIndex
   }
 
   // Панайот overlay — only the beneficiary sees the full picker in multiplayer
-  if (state.panayotTrigger) {
-    const isBeneficiary = !isMultiplayer || localPlayerIndex === state.panayotTrigger.beneficiaryPlayerIndex;
-    if (isBeneficiary) {
-      return <PanayotOverlay state={state} dispatch={dispatch} />;
-    }
-  }
-
   // Compute group info for selected cards
   const selectedHandCards = player.hand.filter(c => state.selectedCards.includes(c.id));
   const selectedHayduti = selectedHandCards.filter(c => c.type === 'haydut');
   const groupByContrib = canFormGroupByContribution(selectedHayduti);
   const groupByColor = canFormGroupByColor(selectedHayduti);
-  const isValidGroup = selectedHayduti.length > 0 && (groupByContrib !== null || groupByColor !== null);
+  const isValidGroup = selectedHayduti.length >= 2 && (groupByContrib !== null || groupByColor !== null);
   const baseGroupStrength = getGroupStrength(selectedHayduti);
   const groupContributions = getGroupContributions(selectedHayduti);
+  const availableRaiseStrengths =
+    groupByContrib !== null
+      ? [baseGroupStrength + getTraitGroupBonus(player, selectedHayduti, groupByContrib)]
+      : groupByColor !== null
+      ? groupContributions.map(contribution => baseGroupStrength + getTraitGroupBonus(player, selectedHayduti, contribution))
+      : [];
+  const maxRaiseStrength = availableRaiseStrengths.length > 0 ? Math.max(...availableRaiseStrengths) : 0;
 
   // Cards that can be raised (on field face-up or in hand)
-  const raisableFromField = state.field.filter((c, i) =>
-    state.fieldFaceUp[i] && (c.type === 'voyvoda' || c.type === 'deyets')
-  );
+  const raisableFromField = [
+    ...state.field.filter((c, i) => state.fieldFaceUp[i] && (c.type === 'voyvoda' || c.type === 'deyets')),
+    ...state.sideField.filter((c, i) => state.sideFieldFaceUp[i] && (c.type === 'voyvoda' || c.type === 'deyets')),
+  ];
 
-  const canDoActions = isMyTurn && state.turnStep === 'recruiting' && state.actionsRemaining > 0 && !state.zaptieTrigger;
+  const canDoActions = isMyTurn && state.turnStep === 'recruiting' && state.actionsRemaining > 0 && !pendingDecision;
   const isSelectionStep = isMyTurn && state.turnStep === 'selection';
   const isFormingStep = isMyTurn && state.turnStep === 'forming';
   const effectiveNabor = player.stats.nabor + (player.dyadoIlyoActive ? 2 : 0);
-  const needsDiscard = isSelectionStep && player.hand.length > effectiveNabor;
+  const needsDiscard = isSelectionStep && !pendingDecision && player.hand.length > effectiveNabor;
 
   // Петко Войвода: in selection step after defeat, player must keep exactly 2
-  const isPetkoSelection = isSelectionStep && state.zaptieTrigger === undefined &&
-    !state.canFormGroup && player.hand.length > 2 &&
-    player.traits.includes('petko_voy');
+  const isPetkoSelection =
+    ownsPendingDecision &&
+    pendingDecision?.kind === 'card_choice' &&
+    pendingDecision.purpose === 'petko_keep';
 
   // Turn-start ability availability
   const canUseSofroniy = canDoActions && player.traits.includes('sofroniy') && !state.sofroniyAbilityUsed;
-  const canUseHadzhi = canDoActions && player.traits.includes('hadzhi') && !state.hadzhiAbilityUsed &&
-    state.field.some((c, i) => state.fieldFaceUp[i] && c.type === 'zaptie');
-  const totalZaptieBoyna = getTotalZaptieBoyna(state.field, state.fieldFaceUp);
+  const canUseHadzhi = canDoActions && player.traits.includes('hadzhi') && !state.hadzhiAbilityUsed && (
+    state.field.some((c, i) => state.fieldFaceUp[i] && c.type === 'zaptie') ||
+    state.sideField.some((c, i) => state.sideFieldFaceUp[i] && c.type === 'zaptie')
+  );
+  const totalZaptieBoyna =
+    getTotalZaptieBoyna(state.field, state.fieldFaceUp) +
+    getTotalZaptieBoyna(state.sideField, state.sideFieldFaceUp);
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'oklch(0.17 0.025 55)' }}>
@@ -559,6 +739,9 @@ export default function Game({ externalState, externalDispatch, localPlayerIndex
         className="fixed inset-0 opacity-10 pointer-events-none"
         style={{ backgroundImage: `url(${TABLE_BG})`, backgroundSize: 'cover' }}
       />
+      {pendingDecision && ownsPendingDecision && (
+        <DecisionOverlay state={state} dispatch={dispatch} />
+      )}
 
       {/* TOP BAR */}
       <div
@@ -716,10 +899,10 @@ export default function Game({ externalState, externalDispatch, localPlayerIndex
           </div>
 
           {/* Panayot banner for non-beneficiary players in multiplayer */}
-          {isMultiplayer && state.panayotTrigger && localPlayerIndex !== state.panayotTrigger.beneficiaryPlayerIndex && (
+          {pendingDecision && !ownsPendingDecision && (
             <div className="rounded-xl border-2 p-3 text-center font-source text-sm animate-pulse"
               style={{ background: 'oklch(0.18 0.04 55)', borderColor: '#fdba74', color: '#fdba74' }}>
-              🦊 Панайот Хитов: {state.players[state.panayotTrigger.beneficiaryPlayerIndex].name} избира карти от {state.players[state.panayotTrigger.defeatedPlayerIndex].name}...
+              {state.players[pendingDecision.ownerPlayerIndex].name} решава: {pendingDecision.prompt}
             </div>
           )}
 
@@ -790,14 +973,13 @@ export default function Game({ externalState, externalDispatch, localPlayerIndex
 {/* Helper to render a single field card slot */}
             {(() => {
               const mainCards = state.field.slice(0, 16);
-              const extraCards = state.field.slice(16);
+              const sideCards = state.sideField;
 
-              const renderFieldCard = (card: Card, i: number) => {
-                const isFaceUp = state.fieldFaceUp[i];
+              const renderFieldCard = (card: Card, fieldIndex: number, isFaceUp: boolean) => {
                 const isRaisable = isFormingStep && isValidGroup && (card.type === 'voyvoda' || card.type === 'deyets') && isFaceUp;
                 const isHadzhiTarget = hadzhiMode && isFaceUp && card.type === 'zaptie';
                 return (
-                  <div key={`${card.id}_${i}`} className="relative">
+                  <div key={`${card.id}_${fieldIndex}`} className="relative">
                     {isFaceUp ? (
                       <GameCard
                         card={card}
@@ -805,10 +987,10 @@ export default function Game({ externalState, externalDispatch, localPlayerIndex
                         highlight={isHadzhiTarget ? 'remove' : undefined}
                         onClick={() => {
                           if (isHadzhiTarget) {
-                            dispatch({ type: 'USE_HADZHI_ABILITY', fieldIndex: i });
+                            dispatch({ type: 'USE_HADZHI_ABILITY', fieldIndex });
                             setHadzhiMode(false);
                           } else if (canDoActions && card.type !== 'zaptie') {
-                            dispatch({ type: 'SAFE_RECRUIT', fieldIndex: i });
+                            dispatch({ type: 'SAFE_RECRUIT', fieldIndex });
                           } else if (isRaisable) {
                             dispatch({ type: 'FORM_GROUP_RAISE_CARD', targetCardId: card.id });
                           }
@@ -820,7 +1002,7 @@ export default function Game({ externalState, externalDispatch, localPlayerIndex
                         className={`rounded-lg overflow-hidden border shadow-md ${canDoActions && !hadzhiMode ? 'cursor-pointer' : ''}`}
                         style={{ width: 64, height: 100, borderColor: canDoActions && !hadzhiMode ? 'oklch(0.45 0.08 148)' : 'oklch(0.30 0.03 55)' }}
                         onClick={() => {
-                          if (canDoActions && !hadzhiMode) dispatch({ type: 'SCOUT', fieldIndex: i });
+                          if (canDoActions && !hadzhiMode) dispatch({ type: 'SCOUT', fieldIndex });
                         }}
                       >
                         <img src={CARD_BACK} alt="Face down" className="w-full h-full object-cover" />
@@ -844,7 +1026,7 @@ export default function Game({ externalState, externalDispatch, localPlayerIndex
                 <>
                   {/* Main 4×4 grid — always exactly 16 slots */}
                   <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
-                    {mainCards.map((card, i) => renderFieldCard(card, i))}
+                    {mainCards.map((card, i) => renderFieldCard(card, i, state.fieldFaceUp[i]))}
                     {/* Empty placeholder slots while field is filling up */}
                     {Array.from({ length: Math.max(0, 16 - mainCards.length) }).map((_, j) => (
                       <div
@@ -855,11 +1037,11 @@ export default function Game({ externalState, externalDispatch, localPlayerIndex
                     ))}
                   </div>
                   {/* Extra cards aside (e.g. from Sofroniy peek or Risky recruit Zaптие overflow) */}
-                  {extraCards.length > 0 && (
+                  {sideCards.length > 0 && (
                     <div className="mt-3 pt-3 border-t" style={{ borderColor: 'oklch(0.28 0.03 55)' }}>
                       <p className="font-cinzel text-xs mb-2" style={{ color: 'oklch(0.55 0.04 78)' }}>ДОПЪЛНИТЕЛНИ КАРТИ</p>
                       <div className="flex flex-wrap gap-2">
-                        {extraCards.map((card, j) => renderFieldCard(card, 16 + j))}
+                        {sideCards.map((card, j) => renderFieldCard(card, state.field.length + j, state.sideFieldFaceUp[j]))}
                       </div>
                     </div>
                   )}
@@ -983,7 +1165,7 @@ export default function Game({ externalState, externalDispatch, localPlayerIndex
                     <button
                       key={stat}
                       disabled={!canImprove}
-                      onClick={() => dispatch({ type: state.popHaritonForming ? 'POP_HARITON_FORM_GROUP' : 'FORM_GROUP_IMPROVE_STAT', statType: stat } as GameAction)}
+                      onClick={() => dispatch({ type: 'FORM_GROUP_IMPROVE_STAT', statType: stat })}
                       className="px-3 py-2 rounded-lg font-cinzel text-xs font-semibold border transition-all"
                       style={canImprove ? {
                         background: 'oklch(0.28 0.06 148)',
@@ -1010,9 +1192,7 @@ export default function Game({ externalState, externalDispatch, localPlayerIndex
 
                 {/* Raise buttons for field raisable cards (not during pop hariton) */}
                 {!state.popHaritonForming && raisableFromField.map(card => {
-                  const traitBonus = getTraitGroupBonus(player, selectedHayduti, 'nabor'); // any-type bonuses
-                  const effectiveStrength = baseGroupStrength + traitBonus;
-                  const canRaise = effectiveStrength >= (card.cost ?? 999);
+                  const canRaise = maxRaiseStrength >= (card.cost ?? 999);
                   return (
                     <button
                       key={card.id}

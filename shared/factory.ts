@@ -8,14 +8,12 @@ export function createInitialGameState(
   playerNames: string[],
   gameLength: GameLength
 ): GameState {
-  const regularCards = ALL_CARDS.filter(c => !c.silverDiamond && !c.goldDiamond);
-  const usedCards: typeof regularCards = [];
+  const regularCards = ALL_CARDS.filter(card => !card.silverDiamond && !card.goldDiamond);
   const deck = shuffle(regularCards);
   const field = deck.splice(0, 16);
-  const fieldFaceUp = new Array(16).fill(false);
 
-  const players: Player[] = playerNames.map((name, i) => ({
-    id: `player_${i}`,
+  const players: Player[] = playerNames.map((name, index) => ({
+    id: `player_${index}`,
     name,
     stats: { nabor: 4, deynost: 4, boyna: 4 },
     isRevealed: false,
@@ -30,12 +28,15 @@ export function createInitialGameState(
 
   return {
     phase: 'playing',
+    ruleset: 'official',
     players,
     currentPlayerIndex: 0,
     deck,
     field,
-    fieldFaceUp,
-    usedCards,
+    fieldFaceUp: new Array(field.length).fill(false),
+    sideField: [],
+    sideFieldFaceUp: [],
+    usedCards: [],
     deckRotations: 0,
     maxRotations: getMaxRotations(gameLength),
     gameLength,
@@ -45,11 +46,23 @@ export function createInitialGameState(
     canFormGroup: true,
     selectedCards: [],
     message: `${players[0].name} започва играта!`,
+    notifications: [
+      {
+        id: 'game-start',
+        kind: 'info',
+        text: `${players[0].name} започва играта!`,
+      },
+    ],
+    pendingDecision: undefined,
+    pendingGroup: undefined,
+    defeatContext: undefined,
     zaptieTrigger: undefined,
+    panayotTrigger: undefined,
+    popHaritonForming: false,
     sofroniyAbilityUsed: false,
     hadzhiAbilityUsed: false,
     benkovskiApplied: false,
-    panayotTrigger: undefined,
-    popHaritonForming: false,
+    deckExhausted: false,
+    gameEndsAfterTurn: false,
   };
 }

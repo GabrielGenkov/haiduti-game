@@ -1,5 +1,4 @@
 import { registerAction } from '../action-registry';
-import { replenishField } from '../helpers/replenish-field';
 
 registerAction('USE_SOFRONIY_ABILITY', (state) => {
   if (state.turnStep !== 'recruiting') return state;
@@ -12,27 +11,15 @@ registerAction('USE_SOFRONIY_ABILITY', (state) => {
   const peekedCard = state.deck[0];
   const newDeck = state.deck.slice(1);
 
-  if (peekedCard.type === 'zaptie') {
-    const newField = [...state.field, peekedCard];
-    const newFieldFaceUp = [...state.fieldFaceUp, true];
-    return replenishField({
-      ...state,
-      deck: newDeck,
-      field: newField,
-      fieldFaceUp: newFieldFaceUp,
-      sofroniyAbilityUsed: true,
-      message: `Софроний: открито Заптие (сила ${peekedCard.strength}) — поставено на масата без последствия.`,
-    });
-  }
-
-  const newField = [...state.field, peekedCard];
-  const newFieldFaceUp = [...state.fieldFaceUp, true];
+  // All peeked cards go to the side field (safely aside, per Sofroniy rules)
   return {
     ...state,
     deck: newDeck,
-    field: newField,
-    fieldFaceUp: newFieldFaceUp,
+    sideField: [...state.sideField, peekedCard],
+    sideFieldFaceUp: [...state.sideFieldFaceUp, true],
     sofroniyAbilityUsed: true,
-    message: `Софроний: открита карта "${peekedCard.name}" — поставена с лице нагоре без разход на ход.`,
+    message: peekedCard.type === 'zaptie'
+      ? `Софроний Врачански откри Заптие (сила ${peekedCard.strength}) — поставено встрани без последствия.`
+      : `Софроний Врачански разкри "${peekedCard.name}" — поставена встрани с лице нагоре.`,
   };
 });

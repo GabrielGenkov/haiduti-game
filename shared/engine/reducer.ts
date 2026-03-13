@@ -1,31 +1,18 @@
-import { GameState } from '../types/state';
+// Side-effect imports: register all handlers and traits
+import './handlers';
+import '../traits';
+
 import { GameAction } from '../types/action';
+import { GameState } from '../types/state';
 import { getActionHandler } from './action-registry';
 
-// Import all traits to trigger registration
-import '../traits/index';
-
-// Import all handlers to trigger registration
-import './handlers/scout';
-import './handlers/safe-recruit';
-import './handlers/risky-recruit';
-import './handlers/skip-actions';
-import './handlers/proceed-to-forming';
-import './handlers/discard-card';
-import './handlers/toggle-select';
-import './handlers/form-group-improve';
-import './handlers/form-group-raise';
-import './handlers/skip-forming';
-import './handlers/end-turn';
-import './handlers/acknowledge-zaptie';
-import './handlers/sofroniy-ability';
-import './handlers/hadzhi-ability';
-import './handlers/panayot-pick';
-import './handlers/lyuben-choose';
-import './handlers/pop-hariton-form';
-import './handlers/dismiss-message';
+// Re-export for backward compatibility
+export { getTraitGroupBonus } from '../traits/trait-registry';
 
 export function gameReducer(state: GameState, action: GameAction): GameState {
+  if (state.phase === 'scoring' && action.type !== 'RESOLVE_DECISION') return state;
+  if (state.pendingDecision && action.type !== 'RESOLVE_DECISION') return state;
+
   const handler = getActionHandler(action.type);
   if (!handler) return state;
   return handler(state, action);

@@ -49,12 +49,9 @@ export {
 export { contributionLabel, colorLabel } from './utils/labels';
 export { getTotalZaptieBoyna } from './utils/field';
 
-// Trait system
-export { getTraitGroupBonus } from './traits/trait-registry';
-export type { TraitStrategy } from './traits/trait-registry';
-
 // Engine
 export { gameReducer } from './engine/reducer';
+export { getTraitGroupBonus } from './traits/trait-registry';
 
 // Scoring & Factory
 export { calculateScores } from './scoring';

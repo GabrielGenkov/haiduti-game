@@ -13,6 +13,14 @@ const rakowskiTrait: TraitStrategy = {
     const newHand = player.hand.filter(c => !discarded.some(d => d.id === c.id));
     return { newHand, discarded };
   },
+
+  getEndGameBonusPoints(_player, effectiveStats, allEffectiveStats) {
+    const maxNabor = Math.max(...allEffectiveStats.map(s => s.nabor));
+    if (effectiveStats.nabor === maxNabor) {
+      return { points: 4, label: 'Георги Раковски: +4 (водещ по Набор)' };
+    }
+    return null;
+  },
 };
 
 registerTrait(rakowskiTrait);

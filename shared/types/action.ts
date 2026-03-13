@@ -1,4 +1,4 @@
-import { ContributionType } from './card';
+import { ContributionType, DeyetsTraitId } from './card';
 
 export type GameAction =
   | { type: 'SCOUT'; fieldIndex: number }
@@ -10,14 +10,19 @@ export type GameAction =
   | { type: 'TOGGLE_SELECT_CARD'; cardId: string }
   | { type: 'FORM_GROUP_IMPROVE_STAT'; statType: ContributionType }
   | { type: 'FORM_GROUP_RAISE_CARD'; targetCardId: string }
-  | { type: 'SKIP_FORMING' }
   | { type: 'END_TURN' }
   | { type: 'ACKNOWLEDGE_ZAPTIE' }
-  | { type: 'DISMISS_MESSAGE' }
   | { type: 'USE_SOFRONIY_ABILITY' }
   | { type: 'USE_HADZHI_ABILITY'; fieldIndex: number }
   | { type: 'PANAYOT_PICK_CARD'; cardId: string }
   | { type: 'PANAYOT_SKIP' }
   | { type: 'LYUBEN_CHOOSE_STAT'; statType: ContributionType }
-  | { type: 'POP_HARITON_FORM_GROUP'; statType: ContributionType }
-  | { type: 'POP_HARITON_SKIP' };
+  | { type: 'POP_HARITON_SKIP' }
+  | {
+      type: 'RESOLVE_DECISION';
+      decisionId: string;
+      cardIds?: string[];
+      contribution?: ContributionType;
+      statType?: ContributionType;
+      traitId?: DeyetsTraitId;
+    };
