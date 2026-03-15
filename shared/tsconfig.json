@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "target": "ES2021",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "declaration": true,
+    "baseUrl": ".",
+    "paths": {
+      "@shared/*": ["./*"]
+    }
+  },
+  "include": ["./**/*"],
+  "exclude": ["node_modules", "dist", "__tests__"]
+}

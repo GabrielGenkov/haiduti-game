@@ -4,7 +4,7 @@
  * Uses JWT token from localStorage for authentication (no cookies).
  */
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
-import type { GameState } from '@shared/gameData';
+import type { GameState, PlayerViewState } from '@shared/gameData';
 import type { GameAction } from '@shared/gameEngine';
 import { getToken } from "@/api/client";
 
@@ -30,13 +30,14 @@ export interface RoomInfo {
 export type WsMessage =
   | { type: 'AUTH_OK'; userId: number; name: string }
   | { type: 'AUTH_ERROR'; message: string }
-  | { type: 'ROOM_STATE'; room: RoomInfo; players: PlayerInfo[]; gameState: GameState | null }
-  | { type: 'STATE_UPDATE'; gameState: GameState; version: number }
+  | { type: 'ROOM_STATE'; room: RoomInfo; players: PlayerInfo[]; gameState: PlayerViewState | null }
+  | { type: 'STATE_UPDATE'; gameState: PlayerViewState; version: number }
   | { type: 'PLAYER_JOINED'; player: PlayerInfo }
   | { type: 'PLAYER_LEFT'; userId: number; playerName: string }
   | { type: 'PLAYER_RECONNECTED'; userId: number; playerName: string }
-  | { type: 'GAME_STARTED'; gameState: GameState }
+  | { type: 'GAME_STARTED'; gameState: PlayerViewState }
   | { type: 'GAME_OVER' }
+  | { type: 'COMMAND_REJECTED'; commandId: string; rejection: { kind: string; message: string } }
   | { type: 'ERROR'; message: string }
   | { type: 'PONG' };
 
@@ -47,13 +48,15 @@ interface WsContextValue {
   authenticated: boolean;
   room: RoomInfo | null;
   players: PlayerInfo[];
-  gameState: GameState | null;
+  gameState: GameState | PlayerViewState | null;
   lastError: string | null;
+  seatIndex: number | null;
   connect: () => void;
   authenticate: () => void;
   joinRoom: (code: string) => void;
   startGame: () => void;
   sendAction: (action: GameAction) => void;
+  sendCommand: (action: GameAction) => void;
   clearError: () => void;
 }
 
@@ -67,11 +70,14 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
   const [authenticated, setAuthenticated] = useState(false);
   const [room, setRoom] = useState<RoomInfo | null>(null);
   const [players, setPlayers] = useState<PlayerInfo[]>([]);
-  const [gameState, setGameState] = useState<GameState | null>(null);
+  const [gameState, setGameState] = useState<GameState | PlayerViewState | null>(null);
   const [lastError, setLastError] = useState<string | null>(null);
+  const [seatIndex, setSeatIndex] = useState<number | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingAuthRef = useRef<boolean>(false);
   const pendingRoomRef = useRef<string | null>(null);
+  const authUserIdRef = useRef<number | null>(null);
+  const lastRevisionRef = useRef<number>(0);
 
   const send = useCallback((msg: object) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -93,6 +99,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
     switch (msg.type) {
       case 'AUTH_OK':
         setAuthenticated(true);
+        authUserIdRef.current = msg.userId;
         // If we had a pending room join, do it now
         if (pendingRoomRef.current) {
           send({ type: 'JOIN_ROOM', roomCode: pendingRoomRef.current });
@@ -106,14 +113,27 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
       case 'ROOM_STATE':
         setRoom(msg.room);
         setPlayers(msg.players);
-        if (msg.gameState) setGameState(msg.gameState);
+        if (msg.gameState) {
+          setGameState(msg.gameState);
+          lastRevisionRef.current = msg.gameState.revision;
+        }
+        // Compute seat index from authenticated userId
+        if (authUserIdRef.current != null) {
+          const me = msg.players.find(p => p.userId === authUserIdRef.current);
+          if (me) setSeatIndex(me.seatIndex);
+        }
         break;
       case 'STATE_UPDATE':
         setGameState(msg.gameState);
+        lastRevisionRef.current = msg.version;
         break;
       case 'GAME_STARTED':
         setGameState(msg.gameState);
+        lastRevisionRef.current = msg.gameState.revision;
         setRoom(prev => prev ? { ...prev, status: 'playing' } : null);
+        break;
+      case 'COMMAND_REJECTED':
+        setLastError(`Command rejected: ${msg.rejection.message}`);
         break;
       case 'PLAYER_JOINED':
         setPlayers(prev => {
@@ -196,6 +216,17 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
     send({ type: 'ACTION', payload: action });
   }, [send]);
 
+  const sendCommand = useCallback((action: GameAction) => {
+    if (seatIndex == null) return;
+    const command = {
+      ...action,
+      commandId: crypto.randomUUID(),
+      playerId: `player_${seatIndex}`,
+      expectedRevision: lastRevisionRef.current,
+    };
+    send({ type: 'ACTION', payload: command });
+  }, [send, seatIndex]);
+
   const clearError = useCallback(() => setLastError(null), []);
 
   // Keepalive ping every 30s
@@ -218,8 +249,8 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <WsContext.Provider value={{
-      connected, authenticated, room, players, gameState, lastError,
-      connect, authenticate, joinRoom, startGame, sendAction, clearError,
+      connected, authenticated, room, players, gameState, lastError, seatIndex,
+      connect, authenticate, joinRoom, startGame, sendAction, sendCommand, clearError,
     }}>
       {children}
     </WsContext.Provider>

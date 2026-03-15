@@ -1,19 +1,16 @@
-// Side-effect imports: register all handlers and traits
-import './handlers';
-import '../traits';
+// Side-effect import: register all rules
+import './rules';
 
 import { GameAction } from '../types/action';
 import { GameState } from '../types/state';
-import { getActionHandler } from './action-registry';
+import { dispatchAction } from './rules/rule-dispatcher';
 
-// Re-export for backward compatibility
-export { getTraitGroupBonus } from '../traits/trait-registry';
+// Re-export for backward compatibility (frontend uses this)
+export { getTraitGroupBonusFromTable as getTraitGroupBonus } from './rule-tables';
 
 export function gameReducer(state: GameState, action: GameAction): GameState {
   if (state.phase === 'scoring' && action.type !== 'RESOLVE_DECISION') return state;
   if (state.pendingDecision && action.type !== 'RESOLVE_DECISION') return state;
 
-  const handler = getActionHandler(action.type);
-  if (!handler) return state;
-  return handler(state, action);
+  return dispatchAction(state, action);
 }

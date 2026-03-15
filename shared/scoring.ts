@@ -1,13 +1,15 @@
-import { Player } from './types/player';
+import { Player, PlayerStats } from './types/player';
 import { PlayerScore } from './types/scoring';
-import { getActiveTraits } from './traits';
+import { SCORE_RULES } from './engine/rule-tables';
 
-function getEffectiveStats(player: Player) {
-  const traits = getActiveTraits(player);
-  return traits.reduce((stats, trait) => {
-    if (trait.modifyEndGameStats) return trait.modifyEndGameStats(stats, player);
-    return stats;
-  }, { ...player.stats });
+function getEffectiveStats(player: Player): PlayerStats {
+  let stats = { ...player.stats };
+  for (const rule of SCORE_RULES) {
+    if (player.traits.includes(rule.id) && rule.applyStats) {
+      stats = rule.applyStats(stats, player);
+    }
+  }
+  return stats;
 }
 
 export function calculateScores(players: Player[]): PlayerScore[] {
@@ -33,16 +35,16 @@ export function calculateScores(players: Player[]): PlayerScore[] {
     let traitBonusPoints = 0;
     const traitBonusBreakdown: string[] = [];
 
-    for (const trait of getActiveTraits(player)) {
-      if (trait.getEndGameBonusPoints) {
-        const result = trait.getEndGameBonusPoints(player, effectiveStats, effectiveStatsList);
-        if (result && result.points > 0) {
-          traitBonusPoints += result.points;
-          traitBonusBreakdown.push(result.label);
+    for (const rule of SCORE_RULES) {
+      if (!player.traits.includes(rule.id)) continue;
+      if (rule.getPoints) {
+        const points = rule.getPoints(player, effectiveStats, effectiveStatsList);
+        if (points > 0) {
+          traitBonusPoints += points;
         }
       }
-      if (trait.getScoringLabel) {
-        const label = trait.getScoringLabel(player);
+      if (rule.getLabel) {
+        const label = rule.getLabel(player, effectiveStats, effectiveStatsList);
         if (label) traitBonusBreakdown.push(label);
       }
     }

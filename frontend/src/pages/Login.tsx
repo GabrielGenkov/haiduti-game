@@ -60,7 +60,7 @@ export default function Login() {
               ХАЙДУТИ
             </h1>
             <p className="font-lora text-sm italic" style={{ color: 'oklch(0.65 0.04 78)' }}>
-              Карточна игра за Българското Възраждане
+              Дигитална настолна игра за Българското Възраждане
             </p>
           </div>
 

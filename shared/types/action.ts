@@ -18,6 +18,9 @@ export type GameAction =
   | { type: 'PANAYOT_SKIP' }
   | { type: 'LYUBEN_CHOOSE_STAT'; statType: ContributionType }
   | { type: 'POP_HARITON_SKIP' }
+  | { type: 'DISMISS_MESSAGE' }
+  | { type: 'SKIP_FORMING' }
+  | { type: 'POP_HARITON_FORM_GROUP'; statType: ContributionType }
   | {
       type: 'RESOLVE_DECISION';
       decisionId: string;

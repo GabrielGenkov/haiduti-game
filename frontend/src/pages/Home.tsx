@@ -203,7 +203,7 @@ export default function Home() {
               className="font-lora text-lg md:text-xl italic mb-2"
               style={{ color: 'oklch(0.80 0.04 78)', textShadow: '0 1px 8px rgba(0,0,0,0.9)' }}
             >
-              Карточна игра за Българското Възраждане
+              Дигитална настолна игра за Българското Възраждане
             </p>
             <p
               className="font-source text-sm"

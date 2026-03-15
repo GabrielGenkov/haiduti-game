@@ -19,6 +19,21 @@ export type {
   GameState,
 } from './types/state';
 export type { PlayerScore } from './types/scoring';
+export type {
+  Command,
+  CommandRejection,
+  CommandRejectionKind,
+  ApplyResult,
+} from './types/command';
+export type { DomainEvent } from './types/event';
+export type {
+  HiddenHand,
+  PlayerView,
+  MaskedFieldCard,
+  MaskedPendingDecision,
+  PlayerViewState,
+} from './types/player-view';
+export { isHiddenHand } from './types/player-view';
 
 export {
   HAYDUTI_CARDS,

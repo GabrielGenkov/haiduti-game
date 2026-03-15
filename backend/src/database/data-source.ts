@@ -5,6 +5,9 @@ import { User } from '../users/user.entity';
 import { Room } from '../rooms/room.entity';
 import { RoomPlayer } from '../rooms/room-player.entity';
 import { GameStateEntity } from '../game/game-state.entity';
+import { GameCommandEntity } from '../game/game-command.entity';
+import { GameEventEntity } from '../game/game-event.entity';
+import { GameSnapshotEntity } from '../game/game-snapshot.entity';
 
 config();
 
@@ -37,7 +40,7 @@ export default new DataSource({
   username,
   password,
   database,
-  entities: [User, Room, RoomPlayer, GameStateEntity],
+  entities: [User, Room, RoomPlayer, GameStateEntity, GameCommandEntity, GameEventEntity, GameSnapshotEntity],
   migrations: ['src/database/migrations/*.ts'],
   entitySkipConstructor: true,
 });

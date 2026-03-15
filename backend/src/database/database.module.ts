@@ -4,6 +4,9 @@ import { User } from '../users/user.entity';
 import { Room } from '../rooms/room.entity';
 import { RoomPlayer } from '../rooms/room-player.entity';
 import { GameStateEntity } from '../game/game-state.entity';
+import { GameCommandEntity } from '../game/game-command.entity';
+import { GameEventEntity } from '../game/game-event.entity';
+import { GameSnapshotEntity } from '../game/game-snapshot.entity';
 
 function parseDatabaseUrl(url: string) {
   // mysql://user:pass@host:port/db
@@ -40,7 +43,7 @@ function parseDatabaseUrl(url: string) {
           username,
           password,
           database,
-          entities: [User, Room, RoomPlayer, GameStateEntity],
+          entities: [User, Room, RoomPlayer, GameStateEntity, GameCommandEntity, GameEventEntity, GameSnapshotEntity],
           migrations: [__dirname + '/migrations/*{.ts,.js}'],
           synchronize: false,
           migrationsRun: true,

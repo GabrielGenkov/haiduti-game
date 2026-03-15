@@ -1,15 +1,18 @@
 import { GameState, GameLength } from './types/state';
 import { Player } from './types/player';
 import { ALL_CARDS } from './constants/cards';
-import { shuffle } from './utils/shuffle';
+import { shuffle, createSeededRng } from './utils/shuffle';
 import { getMaxRotations } from './utils/stats';
 
 export function createInitialGameState(
   playerNames: string[],
-  gameLength: GameLength
+  gameLength: GameLength,
+  seed?: number
 ): GameState {
+  const gameSeed = seed ?? Math.floor(Math.random() * 2147483647);
+  const rng = createSeededRng(gameSeed);
   const regularCards = ALL_CARDS.filter(card => !card.silverDiamond && !card.goldDiamond);
-  const deck = shuffle(regularCards);
+  const deck = shuffle(regularCards, rng);
   const field = deck.splice(0, 16);
 
   const players: Player[] = playerNames.map((name, index) => ({
@@ -29,6 +32,8 @@ export function createInitialGameState(
   return {
     phase: 'playing',
     ruleset: 'official',
+    seed: gameSeed,
+    revision: 0,
     players,
     currentPlayerIndex: 0,
     deck,

@@ -84,6 +84,8 @@ export interface DefeatContext {
 export interface GameState {
   phase: GamePhase;
   ruleset: 'official';
+  seed: number;
+  revision: number;
   players: Player[];
   currentPlayerIndex: number;
   deck: Card[];
