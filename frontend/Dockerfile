@@ -1,0 +1,24 @@
+FROM node:22-alpine AS build
+WORKDIR /app
+
+COPY shared/ ./shared/
+
+COPY frontend/package*.json ./frontend/
+RUN cd frontend && npm ci
+
+COPY frontend/ ./frontend/
+RUN cd frontend && npm run build
+
+FROM nginx:alpine
+
+RUN rm /etc/nginx/conf.d/default.conf
+
+COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
+
+COPY --from=build /app/frontend/dist/bundle.js /usr/share/nginx/html/
+COPY --from=build /app/frontend/dist/bundle.css /usr/share/nginx/html/
+COPY --from=build /app/frontend/dist/bundle.js.map /usr/share/nginx/html/
+COPY frontend/public/index.html /usr/share/nginx/html/
+COPY frontend/public/images/ /usr/share/nginx/html/images/
+
+CMD ["nginx", "-g", "daemon off;"]

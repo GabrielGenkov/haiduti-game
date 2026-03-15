@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import * as esbuild from 'esbuild';
 import path from 'path';
 import { fileURLToPath } from 'url';

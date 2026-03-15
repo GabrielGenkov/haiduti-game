@@ -6,6 +6,7 @@ import NotFound from '@/pages/NotFound';
 import { Route, Switch } from 'wouter';
 import ErrorBoundary from './components/ErrorBoundary';
 import { ThemeProvider } from './contexts/ThemeContext';
+import UserBadge from './components/UserBadge';
 import { WebSocketProvider } from './contexts/WebSocketContext';
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -45,6 +46,7 @@ function App() {
         <WebSocketProvider>
           <TooltipProvider>
             <Toaster />
+            <UserBadge />
             <Router />
           </TooltipProvider>
         </WebSocketProvider>

@@ -9,16 +9,18 @@ import { AuthService } from '../auth/auth.service';
 import { UsersService } from '../users/users.service';
 import { RoomsService } from '../rooms/rooms.service';
 import { GameService } from './game.service';
+import { EventStoreService } from './event-store.service';
 import { createInitialGameState, calculateScores } from "@shared/gameData";
 import type { GameState } from "@shared/gameData";
-import { gameReducer } from "@shared/gameEngine";
-import type { GameAction } from "@shared/gameEngine";
+import { applyCommand, buildPlayerView } from "@shared/gameEngine";
+import type { Command } from "@shared/gameEngine";
 
 interface ClientInfo {
   ws: WebSocket;
   userId: number;
   userName: string;
   roomId?: number;
+  seatIndex?: number;
 }
 
 @WebSocketGateway({ path: '/ws' })
@@ -33,6 +35,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly usersService: UsersService,
     private readonly roomsService: RoomsService,
     private readonly gameService: GameService,
+    private readonly eventStoreService: EventStoreService,
   ) {}
 
   handleConnection(client: WebSocket): void {
@@ -145,6 +148,10 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       maxPlayers: room.maxPlayers,
     };
 
+    // Cache seatIndex for this client
+    const mySeat = players.find(p => p.userId === info.userId);
+    if (mySeat) info.seatIndex = mySeat.seatIndex;
+
     // Load game state if game is in progress
     let gameState: GameState | undefined;
     if (room.status === 'playing') {
@@ -159,7 +166,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       type: 'ROOM_STATE',
       room: roomInfo,
       players: playerInfos,
-      gameState,
+      gameState: gameState && info.seatIndex != null
+        ? buildPlayerView(gameState, info.seatIndex)
+        : gameState,
     });
   }
 
@@ -201,17 +210,15 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const gameState = createInitialGameState(playerNames, room.gameLength);
 
     await this.roomsService.setRoomStatus(room.id, 'playing');
-    await this.gameService.saveToDb(room.id, gameState, 1);
+    await this.eventStoreService.saveInitialState(room.id, gameState);
+    this.gameService.setCachedState(room.id, gameState);
 
-    this.broadcastToRoom(room.id, {
-      type: 'GAME_STARTED',
-      gameState,
-    });
+    this.broadcastGameViews(room.id, 'GAME_STARTED', gameState);
   }
 
   // ─── ACTION ────────────────────────────────────────────────
 
-  private async handleAction(client: WebSocket, payload: GameAction): Promise<void> {
+  private async handleAction(client: WebSocket, payload: Command): Promise<void> {
     const info = this.requireAuth(client);
     if (!info || !info.roomId) {
       this.send(client, { type: 'ERROR', message: 'Not in a room' });
@@ -229,32 +236,37 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       gameState = loaded.state;
     }
 
-    // Validate it's this player's turn
-    const players = await this.roomsService.getPlayersForRoom(roomId);
-    const sortedPlayers = players.sort((a, b) => a.seatIndex - b.seatIndex);
-    const currentPlayer = sortedPlayers[gameState.currentPlayerIndex];
-
-    if (!currentPlayer || currentPlayer.userId !== info.userId) {
-      this.send(client, { type: 'ERROR', message: 'Not your turn' });
+    // Idempotency: if this command was already processed, resend current state
+    if (payload.commandId && await this.eventStoreService.isCommandProcessed(payload.commandId)) {
+      const seatIndex = info.seatIndex ?? 0;
+      this.send(client, {
+        type: 'STATE_UPDATE',
+        gameState: buildPlayerView(gameState, seatIndex),
+        version: gameState.revision,
+      });
       return;
     }
 
-    // Apply game action
-    const newState = gameReducer(gameState, payload);
+    // Apply command (handles turn ownership, revision, and action validation)
+    const result = applyCommand(gameState, payload);
 
-    // Get new version
-    const currentVersion = await this.gameService.getVersion(roomId);
-    const newVersion = currentVersion + 1;
+    if (!result.ok) {
+      this.send(client, {
+        type: 'COMMAND_REJECTED',
+        commandId: result.rejection.commandId,
+        rejection: result.rejection,
+      });
+      return;
+    }
 
-    // Save to DB and cache
-    await this.gameService.saveToDb(roomId, newState, newVersion);
+    const { newState, newRevision, events } = result;
 
-    // Broadcast state update
-    this.broadcastToRoom(roomId, {
-      type: 'STATE_UPDATE',
-      gameState: newState,
-      version: newVersion,
-    });
+    // Persist command, events, state, and conditional snapshot in a single transaction
+    await this.eventStoreService.commitTurn(roomId, payload, events, newState, newRevision);
+    this.gameService.setCachedState(roomId, newState);
+
+    // Broadcast per-player masked views (events included for debugging/future use)
+    this.broadcastGameViews(roomId, 'STATE_UPDATE', newState, { version: newRevision, events });
 
     // Check if game is over
     if (newState.phase === 'scoring') {
@@ -301,6 +313,20 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private send(client: WebSocket, data: any): void {
     if (client.readyState === WebSocket.OPEN) {
       client.send(JSON.stringify(data));
+    }
+  }
+
+  private broadcastGameViews(
+    roomId: number,
+    type: string,
+    state: GameState,
+    extra?: Record<string, any>,
+  ): void {
+    for (const [ws, info] of this.clients.entries()) {
+      if (info.roomId !== roomId) continue;
+      const viewerIndex = info.seatIndex ?? 0;
+      const gameState = buildPlayerView(state, viewerIndex);
+      this.send(ws, { type, gameState, ...extra });
     }
   }
 

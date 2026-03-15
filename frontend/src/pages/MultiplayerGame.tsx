@@ -24,7 +24,7 @@ export default function MultiplayerGame() {
   const {
     connected, authenticated, authenticate,
     joinRoom, room, players, gameState, lastError, clearError,
-    sendAction,
+    sendCommand,
   } = useWebSocket();
 
   // Auth + join
@@ -75,9 +75,9 @@ export default function MultiplayerGame() {
     );
   }
 
-  // Dispatch wrapper: send actions to server
+  // Dispatch wrapper: send commands to server (wraps action with identity + revision)
   const handleDispatch = (action: GameAction) => {
-    sendAction(action);
+    sendCommand(action);
   };
 
   return (
