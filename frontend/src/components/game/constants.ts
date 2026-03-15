@@ -1,8 +1,39 @@
 import type { CardColor, DeyetsTraitId } from '@shared/gameData';
 import { CDN_BASE } from '@/config';
 
-export const CARD_BACK = `${CDN_BASE}/haiduti-card-back-B4aTCoJT5z8NC5YoWEzuee.webp`;
+// Card artwork (served from public/images/)
+const IMG_BASE = '/images';
+
+export const CARD_BACK = `${IMG_BASE}/card-back.png`;
 export const TABLE_BG = `${CDN_BASE}/haiduti-table-bg-3gp2hdrBo9Wp4k5QjKnMim.webp`;
+export const BANNER_IMG = `${IMG_BASE}/banner.png`;
+export const VOYVODA_IMG = `${IMG_BASE}/voyvoda.png`;
+export const ZAPTIE_IMG = `${IMG_BASE}/zaptie.png`;
+
+export const HAYDUT_IMAGES: Record<CardColor, string> = {
+  green:  `${IMG_BASE}/haydut-green.png`,
+  blue:   `${IMG_BASE}/haydut-blue.png`,
+  red:    `${IMG_BASE}/haydut-red.png`,
+  yellow: `${IMG_BASE}/haydut-yellow.png`,
+};
+
+export const DEYETS_IMAGES: Record<DeyetsTraitId, string> = {
+  vasil_levski:    `${IMG_BASE}/vasil-levski.png`,
+  hristo_botev:    `${IMG_BASE}/hristo-botev.png`,
+  sofroniy:        `${IMG_BASE}/sofroniy.png`,
+  rakowski:        `${IMG_BASE}/rakowski.png`,
+  evlogi:          `${IMG_BASE}/evlogi.png`,
+  petko_voy:       `${IMG_BASE}/petko-voy.png`,
+  lyuben:          `${IMG_BASE}/lyuben.png`,
+  rayna:           `${IMG_BASE}/rayna.png`,
+  benkovski:       `${IMG_BASE}/benkovski.png`,
+  pop_hariton:     `${IMG_BASE}/pop-hariton.png`,
+  hadzhi:          `${IMG_BASE}/hadzhi.png`,
+  dyado_ilyo:      `${IMG_BASE}/dyado-ilyo.png`,
+  filip_totyu:     `${IMG_BASE}/filip-totyu.png`,
+  panayot:         `${IMG_BASE}/panayot.png`,
+  stefan_karadzha: `${IMG_BASE}/stefan-karadzha.png`,
+};
 
 export const COLOR_STYLES: Record<CardColor, { bg: string; border: string; text: string }> = {
   green:  { bg: '#1a3d2b', border: '#2d7a4f', text: '#6ee7a0' },

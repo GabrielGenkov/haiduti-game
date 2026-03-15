@@ -1,14 +1,13 @@
 import { motion } from 'framer-motion';
 import type { Card } from '@shared/gameData';
 import CardBack from './CardBack';
-import { COLOR_STYLES } from './constants';
+import { COLOR_STYLES, HAYDUT_IMAGES, DEYETS_IMAGES, VOYVODA_IMG, ZAPTIE_IMG, TRAIT_META } from './constants';
 
 export default function GameCard({
   card,
   isSelected = false,
   isSelectable = false,
   onClick,
-  small = false,
   showBack = false,
   highlight,
 }: {
@@ -16,14 +15,13 @@ export default function GameCard({
   isSelected?: boolean;
   isSelectable?: boolean;
   onClick?: () => void;
-  small?: boolean;
   showBack?: boolean;
   highlight?: 'remove' | 'pick';
 }) {
-  const w = small ? 64 : 84;
-  const h = small ? 100 : 132;
+  const w = 100;
+  const h = 156;
 
-  if (showBack) return <CardBack small={small} />;
+  if (showBack) return <CardBack />;
 
   const color = card.color ? COLOR_STYLES[card.color] : null;
   const isZaptie = card.type === 'zaptie';
@@ -38,17 +36,20 @@ export default function GameCard({
     ? '#c0392b'
     : color?.border ?? '#8b7355';
 
-  const bgColor = isZaptie ? '#2d0a0a' : color?.bg ?? '#2a1f0e';
+  const imgSrc = isZaptie ? ZAPTIE_IMG
+    : card.type === 'haydut' && card.color ? HAYDUT_IMAGES[card.color]
+    : card.type === 'voyvoda' ? VOYVODA_IMG
+    : card.type === 'deyets' && card.traitId ? DEYETS_IMAGES[card.traitId]
+    : undefined;
 
   return (
     <motion.div
       onClick={onClick}
-      className={`rounded-lg border-2 overflow-hidden shadow-lg flex-shrink-0 ${isSelectable ? 'cursor-pointer' : ''}`}
+      className={`relative rounded-lg border-2 overflow-hidden shadow-lg flex-shrink-0 ${isSelectable ? 'cursor-pointer' : ''}`}
       style={{
         width: w,
         height: h,
         borderColor,
-        background: bgColor,
         boxShadow: isSelected ? `0 0 12px ${borderColor}80` : highlight ? `0 0 10px ${borderColor}60` : undefined,
       }}
       whileHover={isSelectable ? { y: -4, scale: 1.04 } : {}}
@@ -56,40 +57,46 @@ export default function GameCard({
       animate={isSelected ? { y: -8 } : { y: 0 }}
       transition={{ type: 'spring', stiffness: 300 }}
     >
-      <div className="h-full flex flex-col p-1.5">
-        <div className="flex justify-between items-start mb-1">
-          {card.strength !== undefined && (
-            <span className="text-xs font-bold font-cinzel rounded px-1 bg-black/40"
-              style={{ color: isZaptie ? '#fca5a5' : '#fde68a' }}>
-              {card.strength}
-            </span>
-          )}
-          {card.cost !== undefined && (
-            <span className="text-xs font-bold font-cinzel rounded px-1 bg-black/40 text-amber-300">
-              {card.cost}
-            </span>
-          )}
+      {imgSrc && <img src={imgSrc} alt={card.name} className="absolute inset-0 w-full h-full object-cover" />}
+      <div className="absolute bottom-0 left-0 right-0 bg-black/80 px-1 py-0.5">
+        <div className="text-center font-cinzel" style={{ fontSize: 8, color: isZaptie ? '#fca5a5' : '#fde68a', lineHeight: 1.2 }}>
+          {card.name.length > 12 ? card.name.slice(0, 11) + '...' : card.name}
         </div>
-
-        <div className="flex-1 flex items-center justify-center text-2xl">
-          {isZaptie ? '🔴' : card.type === 'haydut' ? '🗡️' : card.type === 'voyvoda' ? '🏴' : '📜'}
-        </div>
-
-        <div className="text-center" style={{ fontSize: 9, color: isZaptie ? '#fca5a5' : '#fde68a', fontFamily: 'Cinzel, serif', lineHeight: 1.2 }}>
-          {card.type === 'haydut' && card.color
-            ? `${card.color === 'green' ? 'З' : card.color === 'blue' ? 'С' : card.color === 'red' ? 'Ч' : 'Ж'} Хайдутин`
-            : card.name.length > 12 ? card.name.slice(0, 11) + '...' : card.name}
-        </div>
-
-        <div className="flex justify-center gap-1 mt-0.5">
-          {card.contribution && (
-            <span style={{ fontSize: 9, color: card.contribution === 'nabor' ? '#93c5fd' : card.contribution === 'deynost' ? '#fcd34d' : '#fca5a5' }}>
-              {card.contribution === 'nabor' ? '🎴' : card.contribution === 'deynost' ? '⚡' : '⚔️'}
-              {card.strength}
-            </span>
-          )}
-          {card.chetaPoints !== undefined && card.chetaPoints > 0 && (
-            <span style={{ fontSize: 9, color: '#fbbf24' }}>🏳️{card.chetaPoints}</span>
+        <div className="flex justify-center items-center gap-1 mt-0.5 flex-wrap">
+          {card.type === 'deyets' && card.traitId ? (
+            <>
+              <span style={{ fontSize: 10, color: TRAIT_META[card.traitId].color }}>{TRAIT_META[card.traitId].icon}</span>
+              {card.cost !== undefined && (
+                <span className="font-cinzel" style={{ fontSize: 8, color: '#fde68a' }}>💰{card.cost}</span>
+              )}
+              {(card.silverDiamond || card.goldDiamond) && (
+                <span style={{ fontSize: 8, color: card.goldDiamond ? '#fbbf24' : '#94a3b8' }}>
+                  {card.goldDiamond ? '◆Злато' : '◆Сребро'}
+                </span>
+              )}
+            </>
+          ) : (
+            <>
+              {card.type !== 'haydut' && card.strength !== undefined && (
+                <span className="font-cinzel" style={{ fontSize: 8, color: isZaptie ? '#fca5a5' : '#fde68a' }}>⚔️{card.strength}</span>
+              )}
+              {card.cost !== undefined && (
+                <span className="font-cinzel" style={{ fontSize: 8, color: '#fde68a' }}>💰{card.cost}</span>
+              )}
+              {card.contribution && (
+                <span style={{ fontSize: 8, color: card.contribution === 'nabor' ? '#93c5fd' : card.contribution === 'deynost' ? '#fcd34d' : '#fca5a5' }}>
+                  {card.contribution === 'nabor' ? '🎴' : card.contribution === 'deynost' ? '⚡' : '⚔️'}{card.type === 'haydut' ? card.strength : ''}
+                </span>
+              )}
+              {card.chetaPoints !== undefined && card.chetaPoints > 0 && (
+                <span style={{ fontSize: 8, color: '#fbbf24' }}>🏳️{card.chetaPoints}</span>
+              )}
+              {(card.silverDiamond || card.goldDiamond) && (
+                <span style={{ fontSize: 8, color: card.goldDiamond ? '#fbbf24' : '#94a3b8' }}>
+                  {card.goldDiamond ? '◆Злато' : '◆Сребро'}
+                </span>
+              )}
+            </>
           )}
         </div>
       </div>

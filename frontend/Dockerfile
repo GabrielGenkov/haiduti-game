@@ -19,5 +19,6 @@ COPY --from=build /app/frontend/dist/bundle.js /usr/share/nginx/html/
 COPY --from=build /app/frontend/dist/bundle.css /usr/share/nginx/html/
 COPY --from=build /app/frontend/dist/bundle.js.map /usr/share/nginx/html/
 COPY frontend/public/index.html /usr/share/nginx/html/
+COPY frontend/public/images/ /usr/share/nginx/html/images/
 
 CMD ["nginx", "-g", "daemon off;"]

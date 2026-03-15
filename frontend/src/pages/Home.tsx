@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HAYDUTI_CARDS, VOYVODA_CARDS, DEYETS_CARDS, ZAPTIE_CARDS, Card, CardColor, ContributionType, DeyetsTraitId } from '@shared/gameData';
-import { CDN_BASE } from '@/config';
+import { BANNER_IMG, CARD_BACK, VOYVODA_IMG, ZAPTIE_IMG, HAYDUT_IMAGES, DEYETS_IMAGES } from '@/components/game/constants';
 
 // Trait icons for Дейци gallery display
 const TRAIT_ICONS: Record<DeyetsTraitId, { icon: string; color: string }> = {
@@ -27,9 +27,7 @@ const TRAIT_ICONS: Record<DeyetsTraitId, { icon: string; color: string }> = {
   stefan_karadzha: { icon: '\u{1F3F9}', color: '#fca5a5' },
 };
 
-const HERO_IMG = `${CDN_BASE}/haiduti-hero-MngQ2SPQRSJ3spU3uVxSan.webp`;
-const CARD_BACK = `${CDN_BASE}/haiduti-card-back-B4aTCoJT5z8NC5YoWEzuee.webp`;
-const ZAPTIE_IMG = `${CDN_BASE}/haiduti-zaptie-card-WfCxeKMuH3fYJNscGrNePp.webp`;
+const HERO_IMG = BANNER_IMG;
 
 type GalleryTab = 'hayduti' | 'voyvoda' | 'deyets' | 'zaptie';
 
@@ -48,26 +46,17 @@ const CONTRIBUTION_ICONS: Record<ContributionType, { icon: string; label: string
 
 function CardDisplay({ card }: { card: Card }) {
   const [flipped, setFlipped] = useState(false);
-  const color = card.color ? COLOR_STYLES[card.color] : null;
   const contrib = card.contribution ? CONTRIBUTION_ICONS[card.contribution] : null;
 
-  if (card.type === 'zaptie') {
-    return (
-      <motion.div
-        className="relative cursor-pointer"
-        whileHover={{ scale: 1.05, y: -4 }}
-        transition={{ type: 'spring', stiffness: 300 }}
-      >
-        <div className="w-28 h-44 rounded-lg overflow-hidden border-2 border-red-700 shadow-lg shadow-red-900/40">
-          <img src={ZAPTIE_IMG} alt="Заптие" className="w-full h-full object-cover" />
-          <div className="absolute bottom-0 left-0 right-0 bg-red-900/90 px-2 py-1">
-            <div className="font-cinzel text-xs text-red-200 text-center">ЗАПТИЕ</div>
-            <div className="text-center text-xs text-red-300">{'\u2694\uFE0F'} {card.strength}</div>
-          </div>
-        </div>
-      </motion.div>
-    );
-  }
+  const borderClass = card.type === 'zaptie' ? 'border-red-700'
+    : card.color ? COLOR_STYLES[card.color].border
+    : 'border-amber-700';
+
+  const imgSrc = card.type === 'zaptie' ? ZAPTIE_IMG
+    : card.type === 'haydut' && card.color ? HAYDUT_IMAGES[card.color]
+    : card.type === 'voyvoda' ? VOYVODA_IMG
+    : card.type === 'deyets' && card.traitId ? DEYETS_IMAGES[card.traitId]
+    : undefined;
 
   return (
     <motion.div
@@ -79,55 +68,45 @@ function CardDisplay({ card }: { card: Card }) {
     >
       <div className={`card-flip-inner w-full h-full ${flipped ? 'flipped' : ''}`}>
         {/* Front */}
-        <div className={`card-face w-full h-full rounded-lg border-2 ${color?.border ?? 'border-amber-700'} ${color?.bg ?? 'bg-amber-900/30'} overflow-hidden shadow-lg`}>
-          <div className="h-full flex flex-col p-2">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-1">
-              {card.strength && (
-                <span className="font-cinzel text-xs font-bold text-amber-300 bg-black/40 rounded px-1">{card.strength}</span>
-              )}
-              {card.cost && (
-                <span className="font-cinzel text-xs font-bold text-amber-300 bg-black/40 rounded px-1">{'\u{1F4B0}'}{card.cost}</span>
-              )}
-            </div>
-
-            {/* Illustration area */}
-            <div className="flex-1 bg-black/20 rounded flex items-center justify-center text-4xl mb-1">
-              {card.type === 'haydut' ? '\u{1F5E1}\uFE0F' : card.type === 'voyvoda' ? '\u{1F3F4}' : '\u{1F4DC}'}
-            </div>
-
-            {/* Name */}
-            <div className="font-cinzel text-xs font-semibold text-amber-100 text-center leading-tight mb-1 truncate">
+        <div className={`card-face relative w-full h-full rounded-lg border-2 ${borderClass} overflow-hidden shadow-lg`}>
+          <img src={imgSrc} alt={card.name} className="w-full h-full object-cover" loading="lazy" />
+          <div className="absolute bottom-0 left-0 right-0 bg-black/80 px-2 py-1">
+            <div className="font-cinzel text-xs font-semibold text-amber-100 text-center leading-tight truncate">
               {card.name}
             </div>
-
-            {/* Stats row */}
-            <div className="flex items-center justify-center gap-1">
-              {contrib && (
-                <span className={`text-xs ${contrib.color}`}>{contrib.icon}</span>
-              )}
-              {card.chetaPoints !== undefined && card.chetaPoints > 0 && (
-                <span className="text-xs text-amber-400">{'\u{1F3F3}\uFE0F'}{card.chetaPoints}</span>
-              )}
-            </div>
-
-            {/* Trait icon + diamond for deyets */}
-            {card.type === 'deyets' && card.traitId && (
-              <div className="flex items-center gap-1 mt-0.5">
-                <span style={{ fontSize: 14, color: TRAIT_ICONS[card.traitId].color }}>
+            {card.type === 'deyets' && card.traitId ? (
+              <div className="flex items-center justify-center gap-1.5 mt-0.5">
+                <span style={{ fontSize: 12, color: TRAIT_ICONS[card.traitId].color }}>
                   {TRAIT_ICONS[card.traitId].icon}
                 </span>
+                {card.cost != null && (
+                  <span className="text-xs text-amber-300">{'\u{1F4B0}'}{card.cost}</span>
+                )}
                 {(card.silverDiamond || card.goldDiamond) && (
                   <span style={{ fontSize: 9, color: card.goldDiamond ? '#fbbf24' : '#94a3b8' }}>
                     {card.goldDiamond ? '\u25C6 Злато' : '\u25C6 Сребро'}
                   </span>
                 )}
               </div>
-            )}
-            {/* Effect (for deyets) */}
-            {card.effect && (
-              <div className="text-xs text-amber-200/70 mt-1 leading-tight line-clamp-2 font-source">
-                {card.effect}
+            ) : (
+              <div className="flex items-center justify-center gap-1.5 mt-0.5">
+                {card.type !== 'haydut' && card.strength != null && (
+                  <span className="text-xs text-amber-300">{'\u2694\uFE0F'}{card.strength}</span>
+                )}
+                {card.cost != null && (
+                  <span className="text-xs text-amber-300">{'\u{1F4B0}'}{card.cost}</span>
+                )}
+                {contrib && (
+                  <span className={`text-xs ${contrib.color}`}>{contrib.icon}{card.strength ?? ''}</span>
+                )}
+                {card.chetaPoints !== undefined && card.chetaPoints > 0 && (
+                  <span className="text-xs text-amber-400">{'\u{1F3F3}\uFE0F'}{card.chetaPoints}</span>
+                )}
+                {(card.silverDiamond || card.goldDiamond) && (
+                  <span style={{ fontSize: 9, color: card.goldDiamond ? '#fbbf24' : '#94a3b8' }}>
+                    {card.goldDiamond ? '\u25C6 Злато' : '\u25C6 Сребро'}
+                  </span>
+                )}
               </div>
             )}
           </div>
@@ -142,27 +121,16 @@ function CardDisplay({ card }: { card: Card }) {
   );
 }
 
-// Deduplicate hayduti for display (show one of each type)
-function getUniqueHayduti() {
-  const seen = new Set<string>();
-  return HAYDUTI_CARDS.filter(c => {
-    const key = `${c.color}_${c.contribution}_${c.strength}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-}
-
 export default function Home() {
   const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState<GalleryTab>('hayduti');
   const [showRules, setShowRules] = useState(false);
 
   const tabCards: Record<GalleryTab, Card[]> = {
-    hayduti: getUniqueHayduti(),
+    hayduti: HAYDUTI_CARDS,
     voyvoda: VOYVODA_CARDS,
     deyets: DEYETS_CARDS,
-    zaptie: ZAPTIE_CARDS.slice(0, 8), // show sample
+    zaptie: ZAPTIE_CARDS,
   };
 
   const tabLabels: Record<GalleryTab, { label: string; count: number; color: string }> = {
@@ -363,11 +331,6 @@ export default function Home() {
           </motion.div>
         </AnimatePresence>
 
-        {activeTab === 'hayduti' && (
-          <p className="mt-4 font-source text-sm" style={{ color: 'oklch(0.55 0.03 70)' }}>
-            Показани уникалните типове. В тестето всяка карта се среща по 2 пъти. Натисни карта, за да я обърнеш.
-          </p>
-        )}
       </section>
 
       {/* FOOTER */}

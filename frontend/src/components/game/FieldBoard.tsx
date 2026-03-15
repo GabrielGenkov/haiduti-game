@@ -28,7 +28,7 @@ export default function FieldBoard({
     const isRaisable = isFaceUp && card != null && isFormingStep && isValidGroup && (card.type === 'voyvoda' || card.type === 'deyets');
     const isHadzhiTarget = isFaceUp && card != null && hadzhiMode && card.type === 'zaptie';
     return (
-      <div key={`${card?.id ?? 'hidden'}_${fieldIndex}`} className="relative">
+      <div key={`${card?.id ?? 'hidden'}_${fieldIndex}`} className="relative flex items-center justify-center">
         {isFaceUp && card != null ? (
           <GameCard
             card={card}
@@ -43,22 +43,16 @@ export default function FieldBoard({
                 onRaiseCard(card.id);
               }
             }}
-            small
           />
         ) : (
           <div
             className={`rounded-lg overflow-hidden border shadow-md ${canDoActions && !hadzhiMode ? 'cursor-pointer' : ''}`}
-            style={{ width: 64, height: 100, borderColor: canDoActions && !hadzhiMode ? 'oklch(0.45 0.08 148)' : 'oklch(0.30 0.03 55)' }}
+            style={{ width: 100, height: 156, borderColor: canDoActions && !hadzhiMode ? 'oklch(0.45 0.08 148)' : 'oklch(0.30 0.03 55)' }}
             onClick={() => {
               if (canDoActions && !hadzhiMode) onScout(fieldIndex);
             }}
           >
             <img src={CARD_BACK} alt="Face down" className="w-full h-full object-cover" />
-            {canDoActions && !hadzhiMode && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-lg">
-                <span className="text-xs font-cinzel text-emerald-400">🔍</span>
-              </div>
-            )}
           </div>
         )}
         {isFaceUp && card != null && card.type === 'zaptie' && (
@@ -97,7 +91,7 @@ export default function FieldBoard({
           <div
             key={`empty_${j}`}
             className="rounded-lg border border-dashed"
-            style={{ width: 64, height: 100, borderColor: 'oklch(0.25 0.02 55)', opacity: 0.4 }}
+            style={{ width: 100, height: 156, borderColor: 'oklch(0.25 0.02 55)', opacity: 0.4 }}
           />
         ))}
       </div>
