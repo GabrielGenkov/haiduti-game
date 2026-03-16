@@ -18,6 +18,7 @@ registerRule({
 
     const player = state.players[state.currentPlayerIndex];
     const card = state.field[fieldIndex];
+    if (!card) return [];
     const scoutActionsRemaining = state.actionsRemaining - 1;
     const scoutActionsUsed = state.actionsUsed + 1;
     const scoutNextStep: TurnStep = scoutActionsRemaining <= 0 ? 'selection' : 'recruiting';
@@ -65,7 +66,7 @@ registerRule({
     const { fieldIndex } = action as { type: 'SAFE_RECRUIT'; fieldIndex: number };
     if (!state.fieldFaceUp[fieldIndex]) return [];
     const card = state.field[fieldIndex];
-    if (card.type === 'zaptie') return [];
+    if (!card || card.type === 'zaptie') return [];
 
     const newActionsRemaining = state.actionsRemaining - 1;
     const newActionsUsed = state.actionsUsed + 1;
@@ -100,9 +101,12 @@ registerRule({
     if (card.type === 'zaptie') {
       emitEvent({ type: 'CARD_RECRUITED_RISKY', cardId: card.id, cardName: card.name, cardType: card.type, drawnZaptie: true });
 
+      const nullIdx = state.field.findIndex(c => c === null);
+      const zapFieldIdx = nullIdx >= 0 ? nullIdx : state.field.length;
+
       const effects: Effect[] = [
         { type: 'MOVE_CARDS', cardIds: [card.id], from: { zone: 'deck' }, to: { zone: 'field' } },
-        { type: 'SET_FIELD_VISIBILITY', fieldZone: 'field', indices: [state.field.length], visible: true },
+        { type: 'SET_FIELD_VISIBILITY', fieldZone: 'field', indices: [zapFieldIdx], visible: true },
         { type: 'SET_TURN_FLOW', updates: { actionsUsed: state.actionsUsed + 1, actionsRemaining: riskyActionsRemaining } },
       ];
 

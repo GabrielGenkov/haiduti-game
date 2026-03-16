@@ -18,7 +18,7 @@ import type { ContributionType } from '../types/card';
 
 /** Count total cards across all zones. */
 function countAllCards(state: GameState): number {
-  let count = state.deck.length + state.field.length + state.sideField.length + state.usedCards.length;
+  let count = state.deck.length + state.field.filter(c => c !== null).length + state.sideField.filter(c => c !== null).length + state.usedCards.length;
   for (const p of state.players) {
     count += p.hand.length + p.raisedVoyvodas.length + p.raisedDeytsi.length;
   }
@@ -273,8 +273,8 @@ function assertInvariants(state: GameState, label: string): void {
   // 6. No duplicate card IDs across all zones
   const allIds: string[] = [];
   allIds.push(...state.deck.map(c => c.id));
-  allIds.push(...state.field.map(c => c.id));
-  allIds.push(...state.sideField.map(c => c.id));
+  allIds.push(...state.field.filter(c => c !== null).map(c => c.id));
+  allIds.push(...state.sideField.filter(c => c !== null).map(c => c.id));
   allIds.push(...state.usedCards.map(c => c.id));
   for (const p of state.players) {
     allIds.push(...p.hand.map(c => c.id));
@@ -426,11 +426,86 @@ describe('Property-Based Tests', () => {
           expect(state1.phase).toBe(state2.phase);
           expect(state1.currentPlayerIndex).toBe(state2.currentPlayerIndex);
           expect(state1.deck.map(c => c.id)).toEqual(state2.deck.map(c => c.id));
-          expect(state1.field.map(c => c.id)).toEqual(state2.field.map(c => c.id));
+          expect(state1.field.map(c => c?.id)).toEqual(state2.field.map(c => c?.id));
           for (let i = 0; i < state1.players.length; i++) {
             expect(state1.players[i].hand.map(c => c.id)).toEqual(state2.players[i].hand.map(c => c.id));
             expect(state1.players[i].stats).toEqual(state2.players[i].stats);
           }
+        },
+      ),
+      { numRuns: 20 },
+    );
+  });
+
+  it('invariants hold across random long game sequences (covers rotation 3+)', () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 1, max: 2147483646 }),  // random seed
+        fc.integer({ min: 2, max: 4 }),             // player count
+        (seed, playerCount) => {
+          const names = Array.from({ length: playerCount }, (_, i) => `P${i}`);
+          let state = createInitialGameState(names, 'long', seed);
+          assertInvariants(state, 'init');
+
+          let prevRevision = state.revision;
+
+          for (let i = 0; i < 600; i++) {
+            const action = generateValidAction(state, i);
+            if (!action) break; // game over
+
+            const cmd = makeCommand(state, action);
+            const result = applyCommand(state, cmd);
+
+            if (!result.ok) continue;
+
+            expect(
+              result.newRevision,
+              `[cmd ${i}] Revision went from ${prevRevision} to ${result.newRevision}`,
+            ).toBe(prevRevision + 1);
+
+            state = result.newState;
+            prevRevision = state.revision;
+            assertInvariants(state, `cmd ${i} (${action.type})`);
+          }
+        },
+      ),
+      { numRuns: 15 },
+    );
+  });
+
+  it('determinism: same seed produces identical deck after rotation', () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 1, max: 2147483646 }),
+        (seed) => {
+          const names = ['X', 'Y'];
+
+          // Run 1
+          let state1 = createInitialGameState(names, 'medium', seed);
+          const actions: GameAction[] = [];
+          for (let i = 0; i < 400; i++) {
+            const action = generateValidAction(state1, i);
+            if (!action) break;
+            actions.push(action);
+            const cmd = makeCommand(state1, action);
+            const result = applyCommand(state1, cmd);
+            if (result.ok) state1 = result.newState;
+          }
+
+          // Run 2 — same seed, same action sequence
+          let state2 = createInitialGameState(names, 'medium', seed);
+          for (const action of actions) {
+            const cmd = makeCommand(state2, action);
+            const result = applyCommand(state2, cmd);
+            if (result.ok) state2 = result.newState;
+          }
+
+          // Both must have gone through at least 1 rotation for this to be meaningful
+          // (if not, the test is vacuously true — still correct)
+          expect(state1.deckRotations).toBe(state2.deckRotations);
+          expect(state1.deck.map(c => c.id)).toEqual(state2.deck.map(c => c.id));
+          expect(state1.field.map(c => c?.id)).toEqual(state2.field.map(c => c?.id));
+          expect(state1.usedCards.map(c => c.id)).toEqual(state2.usedCards.map(c => c.id));
         },
       ),
       { numRuns: 20 },

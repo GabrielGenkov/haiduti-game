@@ -89,9 +89,9 @@ export interface GameState {
   players: Player[];
   currentPlayerIndex: number;
   deck: Card[];
-  field: Card[];
+  field: (Card | null)[];
   fieldFaceUp: boolean[];
-  sideField: Card[];
+  sideField: (Card | null)[];
   sideFieldFaceUp: boolean[];
   usedCards: Card[];
   deckRotations: number;

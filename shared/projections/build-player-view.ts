@@ -20,13 +20,15 @@ export function buildPlayerView(state: GameState, viewerIndex: number): PlayerVi
     // zaptieTurnIgnored, dyadoIlyoActive: intentionally stripped
   }));
 
-  // Mask field cards
-  const field: MaskedFieldCard[] = state.field.map((card, i) =>
-    state.fieldFaceUp[i] ? card : null,
-  );
-  const sideField: MaskedFieldCard[] = state.sideField.map((card, i) =>
-    state.sideFieldFaceUp[i] ? card : null,
-  );
+  // Mask field cards: null slot → 'empty', face-down card → null, face-up → card
+  const field: MaskedFieldCard[] = state.field.map((card, i) => {
+    if (card === null) return 'empty';
+    return state.fieldFaceUp[i] ? card : null;
+  });
+  const sideField: MaskedFieldCard[] = state.sideField.map((card, i) => {
+    if (card === null) return 'empty';
+    return state.sideFieldFaceUp[i] ? card : null;
+  });
 
   // Mask pending decision for non-owners
   let pendingDecision: PlayerViewState['pendingDecision'];

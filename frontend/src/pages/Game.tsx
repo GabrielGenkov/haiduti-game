@@ -129,8 +129,8 @@ export default function Game({ externalState, externalDispatch, localPlayerIndex
     state.sideField.some((c, i) => c != null && state.sideFieldFaceUp[i] && c.type === 'zaptie')
   );
   const totalZaptieBoyna =
-    getTotalZaptieBoyna(state.field as Card[], state.fieldFaceUp) +
-    getTotalZaptieBoyna(state.sideField as Card[], state.sideFieldFaceUp);
+    getTotalZaptieBoyna(state.field as (Card | null)[], state.fieldFaceUp) +
+    getTotalZaptieBoyna(state.sideField as (Card | null)[], state.sideFieldFaceUp);
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'oklch(0.17 0.025 55)' }}>

@@ -40,8 +40,9 @@ describe('MOVE_CARDS', () => {
       to: { zone: 'hand', playerIndex: 0 },
     };
     const next = applyEffect(state, effect);
-    expect(next.field.length).toBe(state.field.length - 1);
-    expect(next.fieldFaceUp.length).toBe(state.fieldFaceUp.length - 1);
+    expect(next.field.length).toBe(state.field.length);
+    expect(next.field[fieldIndex]).toBeNull();
+    expect(next.fieldFaceUp.length).toBe(state.fieldFaceUp.length);
     expect(next.players[0].hand.some(c => c.id === cardId)).toBe(true);
   });
 
@@ -75,8 +76,9 @@ describe('MOVE_CARDS', () => {
       to: { zone: 'raisedVoyvodas', playerIndex: 0 },
     };
     const next = applyEffect(state, effect);
-    expect(next.field.length).toBe(state.field.length - 1);
-    expect(next.fieldFaceUp.length).toBe(state.field.length - 1);
+    expect(next.field.length).toBe(state.field.length);
+    expect(next.field.find(c => c !== null && c.id === voyvoda.id)).toBeUndefined();
+    expect(next.fieldFaceUp.length).toBe(state.fieldFaceUp.length);
     expect(next.players[0].raisedVoyvodas.some(c => c.id === voyvoda.id)).toBe(true);
   });
 

@@ -1,30 +1,39 @@
 import { GameState } from '../../types/state';
 import { ALL_CARDS } from '../../constants/cards';
-import { shuffle } from '../../utils/shuffle';
+import { shuffle, createSeededRng } from '../../utils/shuffle';
 import { emitEvent } from '../event-collector';
 import { applyEffects } from '../effects/apply-effect';
 import type { Effect } from '../effects/types';
 
 export function replenishFieldEffects(state: GameState): Effect[] {
   const effects: Effect[] = [];
-  let { field, fieldFaceUp, deck, usedCards, deckRotations } = state;
+  let field = [...state.field];
+  let fieldFaceUp = [...state.fieldFaceUp];
+  let deck = [...state.deck];
+  let usedCards = state.usedCards;
+  let deckRotations = state.deckRotations;
 
-  const needed = 16 - field.length;
-  if (needed <= 0) return [];
+  const nullCount = field.filter(c => c === null).length;
+  if (nullCount <= 0) return [];
 
-  const toAdd = Math.min(needed, deck.length);
+  const toAdd = Math.min(nullCount, deck.length);
   if (toAdd > 0) {
     const cardIds = deck.slice(0, toAdd).map(c => c.id);
     effects.push({ type: 'MOVE_CARDS', cardIds, from: { zone: 'deck' }, to: { zone: 'field' } });
     emitEvent({ type: 'FIELD_REPLENISHED', cardsAdded: toAdd, deckRemaining: deck.length - toAdd });
 
-    // Update local tracking
-    field = [...field, ...deck.slice(0, toAdd)];
-    fieldFaceUp = [...fieldFaceUp, ...new Array(toAdd).fill(false)];
+    // Update local tracking — fill null slots
+    const cardsToPlace = deck.slice(0, toAdd);
+    let ci = 0;
+    field = field.map(c => {
+      if (c === null && ci < cardsToPlace.length) return cardsToPlace[ci++];
+      return c;
+    });
     deck = deck.slice(toAdd);
   }
 
-  if (field.length < 16 && deck.length === 0) {
+  const stillNullCount = field.filter(c => c === null).length;
+  if (stillNullCount > 0 && deck.length === 0) {
     deckRotations += 1;
 
     if (deckRotations >= state.maxRotations) {
@@ -39,15 +48,16 @@ export function replenishFieldEffects(state: GameState): Effect[] {
     const silverCards = deckRotations === 1
       ? ALL_CARDS.filter(c => c.silverDiamond && !c.goldDiamond)
       : [];
-    const goldCards = deckRotations >= 2
+    const goldCards = deckRotations === 2
       ? ALL_CARDS.filter(c => c.goldDiamond)
       : [];
 
     emitEvent({ type: 'DECK_ROTATED', rotationNumber: deckRotations, includesSilver: deckRotations === 1, includesGold: deckRotations >= 2 });
 
-    const newDeckCards = shuffle([...usedCards, ...silverCards, ...goldCards]);
+    const rotationRng = createSeededRng(state.seed ^ (deckRotations * 0x9e3779b9));
+    const newDeckCards = shuffle([...usedCards, ...silverCards, ...goldCards], rotationRng);
 
-    const stillNeeded = 16 - field.length;
+    const stillNeeded = field.filter(c => c === null).length;
     const fromNewDeck = newDeckCards.slice(0, stillNeeded);
 
     // Replace deck with ALL shuffled cards, clear usedCards.

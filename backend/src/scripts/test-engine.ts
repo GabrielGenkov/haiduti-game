@@ -65,7 +65,7 @@ runTest('risky recruit with Vasil Levski ignores the first zaptie and still stop
   assert.equal(state.turnStep, 'selection');
   assert.equal(state.actionsRemaining, 0);
   assert.equal(state.players[0].zaptieTurnIgnored, true);
-  assert.deepEqual(state.sideField.map(card => card.id), ['zap_1']);
+  assert.deepEqual(state.sideField.filter(c => c !== null).map(card => card.id), ['zap_1']);
 });
 
 runTest('Vasil Levski and Dyado Ilyo open an explicit choice when the same zaptie is revealed', () => {

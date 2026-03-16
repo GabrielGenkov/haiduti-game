@@ -128,6 +128,7 @@ export function buildZaptieEncounterEffects(state: GameState, zaptieCard: Card):
     const keptFieldIds: string[] = [];
     const removedZaptieIds: string[] = [];
     state.field.forEach((c, i) => {
+      if (c === null) return;
       if (state.fieldFaceUp[i] && c.type === 'zaptie') {
         removedZaptieIds.push(c.id);
       } else {
