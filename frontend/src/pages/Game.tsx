@@ -357,8 +357,8 @@ export default function Game({ externalState, externalDispatch, localPlayerIndex
             isFormingStep={isFormingStep}
             isValidGroup={isValidGroup}
             hadzhiMode={hadzhiMode}
-            onScout={(fieldIndex) => dispatch({ type: 'SCOUT', fieldIndex })}
-            onSafeRecruit={(fieldIndex) => dispatch({ type: 'SAFE_RECRUIT', fieldIndex })}
+            onScout={(fieldIndex, zone) => dispatch({ type: 'SCOUT', fieldIndex, zone })}
+            onSafeRecruit={(fieldIndex, zone) => dispatch({ type: 'SAFE_RECRUIT', fieldIndex, zone })}
             onRiskyRecruit={() => dispatch({ type: 'RISKY_RECRUIT' })}
             onHadzhiTarget={(fieldIndex) => {
               dispatch({ type: 'USE_HADZHI_ABILITY', fieldIndex });

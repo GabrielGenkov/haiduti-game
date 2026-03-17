@@ -1,5 +1,5 @@
-import { GameAction } from '../types/action';
-import { GameState } from '../types/state';
+import { GameAction } from "@shared/types";
+import { GameState } from "@shared/types";
 import { Command, ApplyResult } from '../types/command';
 import { gameReducer } from './reducer';
 import { collectEvents } from './event-collector';

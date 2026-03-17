@@ -15,7 +15,6 @@ await esbuild.build({
   define: {
     'process.env.NODE_ENV': '"production"',
     'process.env.HAIDUTI_API_URL': JSON.stringify(process.env.HAIDUTI_API_URL ?? ''),
-    'process.env.HAIDUTI_CDN_URL': JSON.stringify(process.env.HAIDUTI_CDN_URL ?? ''),
   },
   jsx: 'automatic',
   loader: {

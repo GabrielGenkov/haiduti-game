@@ -6,9 +6,7 @@ import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GameLength } from '@shared/gameData';
-import { CDN_BASE } from '@/config';
-
-const TABLE_BG = `${CDN_BASE}/haiduti-table-bg-3gp2hdrBo9Wp4k5QjKnMim.webp`;
+import { TABLE_BG } from "@/components/game";
 
 const GAME_LENGTH_OPTIONS: { value: GameLength; label: string; desc: string; rotations: string }[] = [
   { value: 'short',  label: 'Кратка',  desc: '2 завъртания на тестето', rotations: '~20 мин' },

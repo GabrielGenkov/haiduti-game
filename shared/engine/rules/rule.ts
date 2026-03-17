@@ -1,5 +1,5 @@
-import { GameState } from '../../types/state';
-import { GameAction } from '../../types/action';
+import { GameState } from "@shared/types";
+import { GameAction } from "@shared/types";
 import { Effect } from '../effects/types';
 
 export interface RuleContext {

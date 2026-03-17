@@ -5,9 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { listRooms, createRoom, joinRoom } from '@/api/rooms';
 import { toast } from 'sonner';
-import { CDN_BASE } from '@/config';
-
-const HERO_IMG = `${CDN_BASE}/haiduti-hero-MngQ2SPQRSJ3spU3uVxSan.webp`;
+import { BANNER_IMG } from "@/components/game/constants";
 
 const GAME_LENGTH_LABELS: Record<string, string> = {
   short: 'Кратка (2 ротации)',
@@ -18,8 +16,7 @@ const GAME_LENGTH_LABELS: Record<string, string> = {
 export default function Lobby() {
   const [, navigate] = useLocation();
   const { user, isAuthenticated, loading } = useAuth();
-  const queryClient = useQueryClient();
-
+  useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
   const [joinCode, setJoinCode] = useState('');
   const [roomName, setRoomName] = useState('');
@@ -84,7 +81,7 @@ export default function Lobby() {
     <div className="min-h-screen" style={{ background: 'oklch(0.17 0.025 55)' }}>
       {/* Header */}
       <div className="relative h-32 overflow-hidden">
-        <img src={HERO_IMG} alt="" className="absolute inset-0 w-full h-full object-cover object-top opacity-40" />
+        <img src={BANNER_IMG} alt="" className="absolute inset-0 w-full h-full object-cover object-top opacity-40" />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[oklch(0.17_0.025_55)]" />
         <div className="relative h-full flex items-center justify-between px-6">
           <button onClick={() => navigate('/')} className="font-cinzel text-amber-300/70 hover:text-amber-300 text-sm transition-colors">

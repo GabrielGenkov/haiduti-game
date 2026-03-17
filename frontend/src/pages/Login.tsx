@@ -4,9 +4,7 @@ import { useLocation } from 'wouter';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { login } from '@/api/auth';
-import { CDN_BASE } from '@/config';
-
-const HERO_IMG = `${CDN_BASE}/haiduti-hero-MngQ2SPQRSJ3spU3uVxSan.webp`;
+import { BANNER_IMG } from "@/components/game/constants";
 
 export default function Login() {
   const [, navigate] = useLocation();
@@ -36,7 +34,7 @@ export default function Login() {
       {/* Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <img
-          src={HERO_IMG}
+          src={BANNER_IMG}
           alt=""
           className="w-full h-full object-cover object-top opacity-10"
         />
