@@ -48,12 +48,13 @@ registerRule({
       ];
     }
 
-    // Regular defeat
+    // Regular defeat — hand already cleared, hide player and skip to end
     if (isDefeated) {
       return [
         { type: 'SET_ZAPTIE_TRIGGER', zaptieTrigger: undefined },
-        { type: 'SET_TURN_FLOW', updates: { turnStep: 'selection' as TurnStep, actionsRemaining: 0, canFormGroup: false } },
-        { type: 'SET_MESSAGE', message: `Комитетът е разбит! Всички карти са изгубени. Натиснете "Продължи" за край на хода.` },
+        { type: 'UPDATE_PLAYER', playerIndex: state.currentPlayerIndex, updates: { isRevealed: false } },
+        { type: 'SET_TURN_FLOW', updates: { turnStep: 'end' as TurnStep, actionsRemaining: 0, canFormGroup: false } },
+        { type: 'SET_MESSAGE', message: `Комитетът е разбит! Всички карти са изгубени.` },
       ];
     }
 

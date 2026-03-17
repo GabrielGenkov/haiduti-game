@@ -13,11 +13,15 @@ registerRule({
   when: ({ state, action }) =>
     action.type === 'SCOUT' && state.turnStep === 'recruiting' && state.actionsRemaining > 0,
   execute: ({ state, action }) => {
-    const { fieldIndex } = action as { type: 'SCOUT'; fieldIndex: number };
-    if (state.fieldFaceUp[fieldIndex]) return [];
+    const { fieldIndex, zone: actionZone } = action as { type: 'SCOUT'; fieldIndex: number; zone?: 'field' | 'sideField' };
+    const zone = actionZone ?? 'field';
+    const faceUpArr = zone === 'field' ? state.fieldFaceUp : state.sideFieldFaceUp;
+    const cardArr = zone === 'field' ? state.field : state.sideField;
+    if (faceUpArr[fieldIndex]) return [];
 
     const player = state.players[state.currentPlayerIndex];
-    const card = state.field[fieldIndex];
+    const card = cardArr[fieldIndex];
+    if (!card) return [];
     const scoutActionsRemaining = state.actionsRemaining - 1;
     const scoutActionsUsed = state.actionsUsed + 1;
     const scoutNextStep: TurnStep = scoutActionsRemaining <= 0 ? 'selection' : 'recruiting';
@@ -28,7 +32,7 @@ registerRule({
     });
 
     const effects: Effect[] = [
-      { type: 'SET_FIELD_VISIBILITY', fieldZone: 'field', indices: [fieldIndex], visible: true },
+      { type: 'SET_FIELD_VISIBILITY', fieldZone: zone, indices: [fieldIndex], visible: true },
       { type: 'SET_TURN_FLOW', updates: { actionsRemaining: scoutActionsRemaining, actionsUsed: scoutActionsUsed, turnStep: scoutNextStep } },
       {
         type: 'SET_MESSAGE',
@@ -45,7 +49,9 @@ registerRule({
       } else {
         // Already revealed — check total zaptie power vs player boyna
         const intermediate = applyEffects(state, effects);
-        const totalZaptieBoyna = getTotalZaptieBoyna(intermediate.field, intermediate.fieldFaceUp);
+        const totalZaptieBoyna =
+          getTotalZaptieBoyna(intermediate.field, intermediate.fieldFaceUp) +
+          getTotalZaptieBoyna(intermediate.sideField, intermediate.sideFieldFaceUp);
         if (totalZaptieBoyna > player.stats.boyna) {
           effects.push(...buildZaptieEncounterEffects(intermediate, card));
         }
@@ -62,10 +68,13 @@ registerRule({
   when: ({ state, action }) =>
     action.type === 'SAFE_RECRUIT' && state.turnStep === 'recruiting' && state.actionsRemaining > 0,
   execute: ({ state, action }) => {
-    const { fieldIndex } = action as { type: 'SAFE_RECRUIT'; fieldIndex: number };
-    if (!state.fieldFaceUp[fieldIndex]) return [];
-    const card = state.field[fieldIndex];
-    if (card.type === 'zaptie') return [];
+    const { fieldIndex, zone: actionZone } = action as { type: 'SAFE_RECRUIT'; fieldIndex: number; zone?: 'field' | 'sideField' };
+    const zone = actionZone ?? 'field';
+    const faceUpArr = zone === 'field' ? state.fieldFaceUp : state.sideFieldFaceUp;
+    const cardArr = zone === 'field' ? state.field : state.sideField;
+    if (!faceUpArr[fieldIndex]) return [];
+    const card = cardArr[fieldIndex];
+    if (!card || card.type === 'zaptie') return [];
 
     const newActionsRemaining = state.actionsRemaining - 1;
     const newActionsUsed = state.actionsUsed + 1;
@@ -74,13 +83,14 @@ registerRule({
     emitEvent({ type: 'CARD_RECRUITED_SAFE', fieldIndex, cardId: card.id, cardName: card.name });
 
     const moveEffects: Effect[] = [
-      { type: 'MOVE_CARDS', cardIds: [card.id], from: { zone: 'field' }, to: { zone: 'hand', playerIndex: state.currentPlayerIndex } },
+      { type: 'MOVE_CARDS', cardIds: [card.id], from: { zone }, to: { zone: 'hand', playerIndex: state.currentPlayerIndex } },
       { type: 'SET_TURN_FLOW', updates: { actionsRemaining: newActionsRemaining, actionsUsed: newActionsUsed, turnStep: newTurnStep } },
       { type: 'SET_MESSAGE', message: `Сигурно вербуване: взета карта "${card.name}"` },
     ];
 
     const intermediate = applyEffects(state, moveEffects);
-    return [...moveEffects, ...replenishFieldEffects(intermediate)];
+    // Only replenish the main field (sideField is never auto-replenished)
+    return [...moveEffects, ...(zone === 'field' ? replenishFieldEffects(intermediate) : [])];
   },
 });
 
@@ -100,9 +110,14 @@ registerRule({
     if (card.type === 'zaptie') {
       emitEvent({ type: 'CARD_RECRUITED_RISKY', cardId: card.id, cardName: card.name, cardType: card.type, drawnZaptie: true });
 
+      // Place zaptie in main field (null slot) or sideField if field is full
+      const nullIdx = state.field.findIndex(c => c === null);
+      const zapZone: 'field' | 'sideField' = nullIdx >= 0 ? 'field' : 'sideField';
+      const zapIdx = nullIdx >= 0 ? nullIdx : state.sideField.length;
+
       const effects: Effect[] = [
-        { type: 'MOVE_CARDS', cardIds: [card.id], from: { zone: 'deck' }, to: { zone: 'field' } },
-        { type: 'SET_FIELD_VISIBILITY', fieldZone: 'field', indices: [state.field.length], visible: true },
+        { type: 'MOVE_CARDS', cardIds: [card.id], from: { zone: 'deck' }, to: { zone: zapZone } },
+        { type: 'SET_FIELD_VISIBILITY', fieldZone: zapZone, indices: [zapIdx], visible: true },
         { type: 'SET_TURN_FLOW', updates: { actionsUsed: state.actionsUsed + 1, actionsRemaining: riskyActionsRemaining } },
       ];
 

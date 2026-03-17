@@ -37,8 +37,8 @@ export interface PlayerView {
 
 // ── Field masking ──────────────────────────────────────────────
 
-/** Face-down field cards become null. */
-export type MaskedFieldCard = Card | null;
+/** Face-down → null, empty slot → 'empty'. */
+export type MaskedFieldCard = Card | null | 'empty';
 
 // ── Decision masking ───────────────────────────────────────────
 

@@ -1,11 +1,10 @@
 import type { CardColor, DeyetsTraitId } from '@shared/gameData';
-import { CDN_BASE } from '@/config';
 
 // Card artwork (served from public/images/)
 const IMG_BASE = '/images';
 
 export const CARD_BACK = `${IMG_BASE}/card-back.png`;
-export const TABLE_BG = `${CDN_BASE}/haiduti-table-bg-3gp2hdrBo9Wp4k5QjKnMim.webp`;
+export const TABLE_BG = `${IMG_BASE}/haiduti-table.png`;
 export const BANNER_IMG = `${IMG_BASE}/banner.png`;
 export const VOYVODA_IMG = `${IMG_BASE}/voyvoda.png`;
 export const ZAPTIE_IMG = `${IMG_BASE}/zaptie.png`;

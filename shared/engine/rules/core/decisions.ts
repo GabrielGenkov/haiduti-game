@@ -26,8 +26,8 @@ registerRule({
     emitEvent({ type: 'DECISION_RESOLVED', decisionKind: decision.kind, decisionId: decision.id });
 
     const zaptie =
-      state.field.find(card => card.id === decision.context?.encounteredCardId) ??
-      state.sideField.find(card => card.id === decision.context?.encounteredCardId);
+      state.field.find(card => card !== null && card.id === decision.context?.encounteredCardId) ??
+      state.sideField.find(card => card !== null && card.id === decision.context?.encounteredCardId);
     if (!zaptie || zaptie.type !== 'zaptie') return [];
 
     // Clear decision, then apply the chosen trait's zaptie interception effects

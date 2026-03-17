@@ -1,6 +1,6 @@
-import { GameState } from '../../types/state';
-import { GameAction } from '../../types/action';
-import { applyEffects } from '../effects/apply-effect';
+import { GameState } from "@shared/types";
+import { GameAction } from "@shared/types";
+import { applyEffects } from "@shared/engine/effects";
 import { getAllRules } from './rule-registry';
 
 export function dispatchAction(state: GameState, action: GameAction): GameState {

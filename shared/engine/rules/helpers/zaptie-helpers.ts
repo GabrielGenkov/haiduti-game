@@ -111,7 +111,9 @@ export function buildZaptieEncounterEffects(state: GameState, zaptieCard: Card):
   }
 
   // Already revealed — check if defeated
-  const totalZaptieBoyna = getTotalZaptieBoyna(state.field, state.fieldFaceUp);
+  const totalZaptieBoyna =
+    getTotalZaptieBoyna(state.field, state.fieldFaceUp) +
+    getTotalZaptieBoyna(state.sideField, state.sideFieldFaceUp);
   const playerBoyna = player.stats.boyna;
 
   if (totalZaptieBoyna > playerBoyna) {
@@ -124,27 +126,21 @@ export function buildZaptieEncounterEffects(state: GameState, zaptieCard: Card):
       (p, i) => i !== state.currentPlayerIndex && p.traits.includes('panayot')
     );
 
-    // Remove face-up zapties from field
-    const keptFieldIds: string[] = [];
-    const removedZaptieIds: string[] = [];
-    state.field.forEach((c, i) => {
-      if (state.fieldFaceUp[i] && c.type === 'zaptie') {
-        removedZaptieIds.push(c.id);
-      } else {
-        keptFieldIds.push(c.id);
-      }
-    });
+    // Remove ALL face-up cards from field and sideField → usedCards
+    const faceUpFieldIds = state.field
+      .filter((c, i): c is Card => c !== null && state.fieldFaceUp[i])
+      .map(c => c.id);
+    const faceUpSideFieldIds = state.sideField
+      .filter((c, i): c is Card => c !== null && state.sideFieldFaceUp[i])
+      .map(c => c.id);
 
     const effects: Effect[] = [];
 
-    if (removedZaptieIds.length > 0) {
-      effects.push({ type: 'MOVE_CARDS', cardIds: removedZaptieIds, from: { zone: 'field' }, to: { zone: 'usedCards' } });
+    if (faceUpFieldIds.length > 0) {
+      effects.push({ type: 'MOVE_CARDS', cardIds: faceUpFieldIds, from: { zone: 'field' }, to: { zone: 'usedCards' } });
     }
-
-    // Reset all field visibility to face-down (for remaining cards)
-    const remainingFieldCount = keptFieldIds.length;
-    if (remainingFieldCount > 0) {
-      effects.push({ type: 'SET_FIELD_VISIBILITY', fieldZone: 'field', indices: 'all', visible: false });
+    if (faceUpSideFieldIds.length > 0) {
+      effects.push({ type: 'MOVE_CARDS', cardIds: faceUpSideFieldIds, from: { zone: 'sideField' }, to: { zone: 'usedCards' } });
     }
 
     // Update player: revealed, clear hand unless petko/pop

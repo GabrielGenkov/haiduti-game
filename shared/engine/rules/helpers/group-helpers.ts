@@ -211,8 +211,8 @@ export function finalizeGroupEffects(
   } else if (context.purpose === 'raise_card' && context.targetCardId) {
     const target =
       player.hand.find(c => c.id === context.targetCardId) ??
-      state.field.find(c => c.id === context.targetCardId) ??
-      state.sideField.find(c => c.id === context.targetCardId);
+      state.field.find(c => c !== null && c.id === context.targetCardId) ??
+      state.sideField.find(c => c !== null && c.id === context.targetCardId);
 
     if (target) {
       const traitId = target.type === 'deyets' ? getDeyetsTraitId(target.id) : null;
@@ -227,8 +227,8 @@ export function finalizeGroupEffects(
       const isVoyvoda = target.type === 'voyvoda';
       const raisedZone = isVoyvoda ? 'raisedVoyvodas' : 'raisedDeytsi';
       const targetInHand = player.hand.some(c => c.id === context.targetCardId);
-      const targetInField = state.field.some(c => c.id === context.targetCardId);
-      const targetInSideField = state.sideField.some(c => c.id === context.targetCardId);
+      const targetInField = state.field.some(c => c !== null && c.id === context.targetCardId);
+      const targetInSideField = state.sideField.some(c => c !== null && c.id === context.targetCardId);
 
       if (targetInHand) {
         effects.push({
@@ -264,7 +264,7 @@ export function finalizeGroupEffects(
 
   // Replenish field if a card was raised from field
   if (context.purpose === 'raise_card' && context.targetCardId) {
-    const wasInField = state.field.some(c => c.id === context.targetCardId);
+    const wasInField = state.field.some(c => c !== null && c.id === context.targetCardId);
     if (wasInField) {
       const intermediate = applyEffects(state, effects);
       effects.push(...replenishFieldEffects(intermediate));
@@ -401,7 +401,7 @@ export function formGroupImproveEffects(state: GameState, statType: Contribution
 export function formGroupRaiseEffects(state: GameState, targetCardId: string): Effect[] {
   const player = state.players[state.currentPlayerIndex];
 
-  const targetInField = state.field.find(c => c.id === targetCardId);
+  const targetInField = state.field.find(c => c !== null && c.id === targetCardId);
   const targetInHand = player.hand.find(c => c.id === targetCardId);
   const targetCard = targetInField || targetInHand;
 

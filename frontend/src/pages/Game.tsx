@@ -129,8 +129,8 @@ export default function Game({ externalState, externalDispatch, localPlayerIndex
     state.sideField.some((c, i) => c != null && state.sideFieldFaceUp[i] && c.type === 'zaptie')
   );
   const totalZaptieBoyna =
-    getTotalZaptieBoyna(state.field as Card[], state.fieldFaceUp) +
-    getTotalZaptieBoyna(state.sideField as Card[], state.sideFieldFaceUp);
+    getTotalZaptieBoyna(state.field as (Card | null)[], state.fieldFaceUp) +
+    getTotalZaptieBoyna(state.sideField as (Card | null)[], state.sideFieldFaceUp);
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'oklch(0.17 0.025 55)' }}>
@@ -357,8 +357,8 @@ export default function Game({ externalState, externalDispatch, localPlayerIndex
             isFormingStep={isFormingStep}
             isValidGroup={isValidGroup}
             hadzhiMode={hadzhiMode}
-            onScout={(fieldIndex) => dispatch({ type: 'SCOUT', fieldIndex })}
-            onSafeRecruit={(fieldIndex) => dispatch({ type: 'SAFE_RECRUIT', fieldIndex })}
+            onScout={(fieldIndex, zone) => dispatch({ type: 'SCOUT', fieldIndex, zone })}
+            onSafeRecruit={(fieldIndex, zone) => dispatch({ type: 'SAFE_RECRUIT', fieldIndex, zone })}
             onRiskyRecruit={() => dispatch({ type: 'RISKY_RECRUIT' })}
             onHadzhiTarget={(fieldIndex) => {
               dispatch({ type: 'USE_HADZHI_ABILITY', fieldIndex });

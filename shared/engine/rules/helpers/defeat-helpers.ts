@@ -7,20 +7,18 @@ export function clearVisibleCardsEffects(state: GameState): Effect[] {
 
   // Move face-up field cards to usedCards
   const faceUpFieldIds = state.field
-    .filter((_, i) => state.fieldFaceUp[i])
+    .filter((c, i): c is import('../../../types/card').Card => c !== null && state.fieldFaceUp[i])
     .map(c => c.id);
   if (faceUpFieldIds.length > 0) {
     effects.push({ type: 'MOVE_CARDS', cardIds: faceUpFieldIds, from: { zone: 'field' }, to: { zone: 'usedCards' } });
   }
 
-  // Move all sideField cards to usedCards
-  if (state.sideField.length > 0) {
-    const sideFieldIds = state.sideField
-      .filter((_, i) => state.sideFieldFaceUp[i])
-      .map(c => c.id);
-    if (sideFieldIds.length > 0) {
-      effects.push({ type: 'MOVE_CARDS', cardIds: sideFieldIds, from: { zone: 'sideField' }, to: { zone: 'usedCards' } });
-    }
+  // Move face-up sideField cards to usedCards
+  const sideFieldIds = state.sideField
+    .filter((c, i): c is import('../../../types/card').Card => c !== null && state.sideFieldFaceUp[i])
+    .map(c => c.id);
+  if (sideFieldIds.length > 0) {
+    effects.push({ type: 'MOVE_CARDS', cardIds: sideFieldIds, from: { zone: 'sideField' }, to: { zone: 'usedCards' } });
   }
 
   return effects;

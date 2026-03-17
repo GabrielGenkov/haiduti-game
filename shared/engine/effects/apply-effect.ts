@@ -18,8 +18,8 @@ import {
 function getCardsInZone(state: GameState, ref: ZoneRef): Card[] {
   switch (ref.zone) {
     case 'deck': return state.deck;
-    case 'field': return state.field;
-    case 'sideField': return state.sideField;
+    case 'field': return state.field.filter((c): c is Card => c !== null);
+    case 'sideField': return state.sideField.filter((c): c is Card => c !== null);
     case 'usedCards': return state.usedCards;
     case 'hand': return state.players[ref.playerIndex].hand;
     case 'raisedVoyvodas': return state.players[ref.playerIndex].raisedVoyvodas;
@@ -32,23 +32,23 @@ function removeCardsFromZone(state: GameState, ref: ZoneRef, cardIds: Set<string
     case 'deck':
       return { ...state, deck: state.deck.filter(c => !cardIds.has(c.id)) };
     case 'field': {
-      const indices: number[] = [];
-      state.field.forEach((c, i) => { if (cardIds.has(c.id)) indices.push(i); });
-      const indexSet = new Set(indices);
       return {
         ...state,
-        field: state.field.filter((_, i) => !indexSet.has(i)),
-        fieldFaceUp: state.fieldFaceUp.filter((_, i) => !indexSet.has(i)),
+        field: state.field.map(c => c !== null && cardIds.has(c.id) ? null : c),
+        fieldFaceUp: state.fieldFaceUp.map((v, i) => {
+          const card = state.field[i];
+          return card !== null && cardIds.has(card.id) ? false : v;
+        }),
       };
     }
     case 'sideField': {
-      const indices: number[] = [];
-      state.sideField.forEach((c, i) => { if (cardIds.has(c.id)) indices.push(i); });
-      const indexSet = new Set(indices);
       return {
         ...state,
-        sideField: state.sideField.filter((_, i) => !indexSet.has(i)),
-        sideFieldFaceUp: state.sideFieldFaceUp.filter((_, i) => !indexSet.has(i)),
+        sideField: state.sideField.map(c => c !== null && cardIds.has(c.id) ? null : c),
+        sideFieldFaceUp: state.sideFieldFaceUp.map((v, i) => {
+          const card = state.sideField[i];
+          return card !== null && cardIds.has(card.id) ? false : v;
+        }),
       };
     }
     case 'usedCards':
@@ -82,30 +82,30 @@ function addCardsToZone(state: GameState, ref: ZoneRef, cards: Card[], position:
   switch (ref.zone) {
     case 'deck':
       return { ...state, deck: prepend ? [...cards, ...state.deck] : [...state.deck, ...cards] };
-    case 'field':
-      return prepend
-        ? {
-          ...state,
-          field: [...cards, ...state.field],
-          fieldFaceUp: [...new Array(cards.length).fill(false), ...state.fieldFaceUp],
+    case 'field': {
+      const newField = [...state.field];
+      const newFaceUp = [...state.fieldFaceUp];
+      let ci = 0;
+      for (let i = 0; i < newField.length && ci < cards.length; i++) {
+        if (newField[i] === null) {
+          newField[i] = cards[ci];
+          newFaceUp[i] = false;
+          ci++;
         }
-        : {
-          ...state,
-          field: [...state.field, ...cards],
-          fieldFaceUp: [...state.fieldFaceUp, ...new Array(cards.length).fill(false)],
-        };
+      }
+      while (ci < cards.length) {
+        newField.push(cards[ci]);
+        newFaceUp.push(false);
+        ci++;
+      }
+      return { ...state, field: newField, fieldFaceUp: newFaceUp };
+    }
     case 'sideField':
-      return prepend
-        ? {
-          ...state,
-          sideField: [...cards, ...state.sideField],
-          sideFieldFaceUp: [...new Array(cards.length).fill(false), ...state.sideFieldFaceUp],
-        }
-        : {
-          ...state,
-          sideField: [...state.sideField, ...cards],
-          sideFieldFaceUp: [...state.sideFieldFaceUp, ...new Array(cards.length).fill(false)],
-        };
+      return {
+        ...state,
+        sideField: [...state.sideField, ...cards],
+        sideFieldFaceUp: [...state.sideFieldFaceUp, ...new Array(cards.length).fill(false)],
+      };
     case 'usedCards':
       return { ...state, usedCards: prepend ? [...cards, ...state.usedCards] : [...state.usedCards, ...cards] };
     case 'hand':

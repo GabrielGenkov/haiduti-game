@@ -1,8 +1,8 @@
 import { ContributionType, DeyetsTraitId } from './card';
 
 export type GameAction =
-  | { type: 'SCOUT'; fieldIndex: number }
-  | { type: 'SAFE_RECRUIT'; fieldIndex: number }
+  | { type: 'SCOUT'; fieldIndex: number; zone?: 'field' | 'sideField' }
+  | { type: 'SAFE_RECRUIT'; fieldIndex: number; zone?: 'field' | 'sideField' }
   | { type: 'RISKY_RECRUIT' }
   | { type: 'SKIP_ACTIONS' }
   | { type: 'DISCARD_CARD'; cardId: string }
