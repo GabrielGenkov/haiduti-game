@@ -26,7 +26,7 @@ import { getDeckCount, getUsedCardsCount, getPlayerHand, getPlayerHandCount, typ
 import {
   TABLE_BG, PLAYER_COLORS,
   PlayerBoard, PassDeviceScreen, ScoringScreen, PanayotOverlay, DecisionOverlay,
-  FieldBoard, PlayerHand, FormingActions,
+  FieldBoard, PlayerHand, FormingActions, DiscardStaging,
 } from '@/components/game';
 
 // ============================================================
@@ -57,6 +57,7 @@ export default function Game({ externalState, externalDispatch, localPlayerIndex
 
   const [showPassDevice, setShowPassDevice] = useState(true);
   const [hadzhiMode, setHadzhiMode] = useState(false); // selecting Zaптие to remove
+  const [stagedDiscardIds, setStagedDiscardIds] = useState<string[]>([]);
 
   const state = gameState;
   const isMultiplayer = localPlayerIndex !== undefined;
@@ -66,6 +67,9 @@ export default function Game({ externalState, externalDispatch, localPlayerIndex
   const pendingDecision = state.pendingDecision;
   const ownsPendingDecision =
     !pendingDecision || !isMultiplayer || localPlayerIndex === pendingDecision.ownerPlayerIndex;
+
+  // Reset discard staging when leaving selection step
+  useEffect(() => { setStagedDiscardIds([]); }, [state.turnStep]);
 
   // When turn changes, show pass device screen
   const [lastPlayerIndex, setLastPlayerIndex] = useState(state.currentPlayerIndex);
@@ -261,14 +265,29 @@ export default function Game({ externalState, externalDispatch, localPlayerIndex
                   Пропусни действия
                 </button>
               )}
-              {isSelectionStep && !needsDiscard && !isPetkoSelection && (
-                <button
-                  onClick={() => dispatch({ type: 'PROCEED_TO_FORMING' })}
-                  className="btn-action px-3 py-1.5 rounded-lg text-xs"
-                >
-                  Спри изчистването
-                </button>
-              )}
+              {isSelectionStep && !isPetkoSelection && (() => {
+                const handCount = getPlayerHandCount(player);
+                const remainingAfterDiscard = handCount - stagedDiscardIds.length;
+                const canConfirm = remainingAfterDiscard <= effectiveNabor;
+                return (
+                  <button
+                    onClick={() => dispatch({ type: 'CONFIRM_DISCARDS', cardIds: stagedDiscardIds })}
+                    disabled={!canConfirm}
+                    className="px-3 py-1.5 rounded-lg font-source text-xs border transition-all"
+                    style={{
+                      borderColor: canConfirm ? '#6ee7a0' : 'oklch(0.35 0.03 55)',
+                      color: canConfirm ? '#6ee7a0' : 'oklch(0.45 0.03 55)',
+                      background: canConfirm ? 'oklch(0.20 0.05 148)' : 'oklch(0.18 0.02 55)',
+                      cursor: canConfirm ? 'pointer' : 'not-allowed',
+                      opacity: canConfirm ? 1 : 0.6,
+                    }}
+                  >
+                    {stagedDiscardIds.length > 0
+                      ? `Потвърди изчистването (${stagedDiscardIds.length})`
+                      : 'Потвърди (без изчистване)'}
+                  </button>
+                );
+              })()}
               {isFormingStep && !state.popHaritonForming && (
                 <button
                   onClick={() => dispatch({ type: 'END_TURN' })}
@@ -367,6 +386,14 @@ export default function Game({ externalState, externalDispatch, localPlayerIndex
             onRaiseCard={(cardId) => dispatch({ type: 'FORM_GROUP_RAISE_CARD', targetCardId: cardId })}
           />
 
+          {/* DISCARD STAGING AREA */}
+          {isSelectionStep && !isPetkoSelection && stagedDiscardIds.length > 0 && (
+            <DiscardStaging
+              stagedCards={getPlayerHand(player).filter(c => stagedDiscardIds.includes(c.id))}
+              onReturn={(cardId) => setStagedDiscardIds(prev => prev.filter(id => id !== cardId))}
+            />
+          )}
+
           {/* HAND */}
           <PlayerHand
             state={state}
@@ -385,6 +412,13 @@ export default function Game({ externalState, externalDispatch, localPlayerIndex
             groupByContrib={groupByContrib}
             groupByColor={groupByColor}
             dispatch={dispatch}
+            stagedDiscardIds={isSelectionStep && !isPetkoSelection ? stagedDiscardIds : undefined}
+            onToggleStage={isSelectionStep && !isPetkoSelection
+              ? (cardId) => setStagedDiscardIds(prev =>
+                  prev.includes(cardId) ? prev.filter(id => id !== cardId) : [...prev, cardId]
+                )
+              : undefined
+            }
           />
 
           {/* FORMING INSTRUCTIONS */}

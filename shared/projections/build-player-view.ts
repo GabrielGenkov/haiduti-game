@@ -69,7 +69,7 @@ export function buildPlayerView(state: GameState, viewerIndex: number): PlayerVi
     actionsUsed: state.actionsUsed,
     canFormGroup: state.canFormGroup,
     selectedCards: state.selectedCards,
-    message: state.message,
+    message: (viewerIndex !== state.currentPlayerIndex && state.publicMessage) ? state.publicMessage : state.message,
     notifications: state.notifications,
 
     pendingDecision,

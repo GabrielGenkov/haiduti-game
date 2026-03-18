@@ -64,6 +64,7 @@ export interface SetTurnFlowEffect {
 export interface SetMessageEffect {
   type: 'SET_MESSAGE';
   message: string;
+  publicMessage?: string;
 }
 
 export interface PushNotificationEffect {

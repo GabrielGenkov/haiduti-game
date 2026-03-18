@@ -149,7 +149,7 @@ registerRule({
     return [
       { type: 'MOVE_CARDS', cardIds: [card.id], from: { zone: 'deck' }, to: { zone: 'hand', playerIndex: state.currentPlayerIndex } },
       { type: 'SET_TURN_FLOW', updates: { actionsRemaining: riskyActionsRemaining, actionsUsed: state.actionsUsed + 1, turnStep: riskyNextStep } },
-      { type: 'SET_MESSAGE', message: `Рисковано вербуване: взета карта "${card.name}"` },
+      { type: 'SET_MESSAGE', message: `Рисковано вербуване: взета карта "${card.name}"`, publicMessage: `Рисковано вербуване: взета карта от тестето.` },
     ];
   },
 });

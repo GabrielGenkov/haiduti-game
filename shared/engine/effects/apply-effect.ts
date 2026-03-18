@@ -227,7 +227,7 @@ export function applyEffect(state: GameState, effect: Effect): GameState {
     case 'UPDATE_PLAYER': return applyUpdatePlayer(state, effect);
     case 'ADD_TRAITS': return applyAddTraits(state, effect);
     case 'SET_TURN_FLOW': return applySetTurnFlow(state, effect);
-    case 'SET_MESSAGE': return { ...state, message: effect.message };
+    case 'SET_MESSAGE': return { ...state, message: effect.message, publicMessage: effect.publicMessage };
     case 'PUSH_NOTIFICATION': return applyPushNotification(state, effect);
     case 'SET_DECISION': return { ...state, pendingDecision: effect.decision };
     case 'SET_PENDING_GROUP': return { ...state, pendingGroup: effect.pendingGroup };

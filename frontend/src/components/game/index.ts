@@ -12,3 +12,4 @@ export { default as DecisionOverlay } from './DecisionOverlay';
 export { default as FieldBoard } from './FieldBoard';
 export { default as PlayerHand } from './PlayerHand';
 export { default as FormingActions } from './FormingActions';
+export { default as DiscardStaging } from './DiscardStaging';

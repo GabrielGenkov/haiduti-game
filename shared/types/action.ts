@@ -6,6 +6,7 @@ export type GameAction =
   | { type: 'RISKY_RECRUIT' }
   | { type: 'SKIP_ACTIONS' }
   | { type: 'DISCARD_CARD'; cardId: string }
+  | { type: 'CONFIRM_DISCARDS'; cardIds: string[] }
   | { type: 'PROCEED_TO_FORMING' }
   | { type: 'TOGGLE_SELECT_CARD'; cardId: string }
   | { type: 'FORM_GROUP_IMPROVE_STAT'; statType: ContributionType }

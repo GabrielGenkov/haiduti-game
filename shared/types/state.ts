@@ -103,6 +103,7 @@ export interface GameState {
   canFormGroup: boolean;
   selectedCards: string[];
   message: string;
+  publicMessage?: string;
   notifications: GameNotification[];
   pendingDecision?: PendingDecision;
   pendingGroup?: PendingGroupContext;

@@ -47,7 +47,7 @@ export const ALLOWED_COMMANDS: Record<LogicalPhase, readonly ActionType[]> = {
     'DISMISS_MESSAGE',
   ],
   selection: [
-    'DISCARD_CARD', 'PROCEED_TO_FORMING', 'SKIP_FORMING',
+    'DISCARD_CARD', 'CONFIRM_DISCARDS', 'PROCEED_TO_FORMING', 'SKIP_FORMING',
     'DISMISS_MESSAGE',
   ],
   forming: [

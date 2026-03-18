@@ -277,8 +277,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     this.logDiagnostics(newState, `room=${roomId} rev=${newRevision} ${payload.type}`);
 
-    // Broadcast per-player masked views (events included for debugging/future use)
-    this.broadcastGameViews(roomId, 'STATE_UPDATE', newState, { version: newRevision, events });
+    // Broadcast per-player masked views (events stored server-side only, not sent to clients)
+    this.broadcastGameViews(roomId, 'STATE_UPDATE', newState, { version: newRevision });
 
     // Check if game is over
     if (newState.phase === 'scoring') {

@@ -24,14 +24,25 @@ interface PlayerHandProps {
   groupByContrib: ContributionType | null;
   groupByColor: CardColor | null;
   dispatch: (action: GameAction) => void;
+  /** IDs of cards staged for discard (selection phase staging) */
+  stagedDiscardIds?: string[];
+  /** Toggle a card in/out of the staging area */
+  onToggleStage?: (cardId: string) => void;
 }
 
 export default function PlayerHand({
   state, handPlayer, player, isMyTurn, isMultiplayer,
   isFormingStep, isSelectionStep, isValidGroup, needsDiscard, isPetkoSelection,
   effectiveNabor, selectedHayduti, baseGroupStrength, groupByContrib, groupByColor,
-  dispatch,
+  dispatch, stagedDiscardIds = [], onToggleStage,
 }: PlayerHandProps) {
+  // Filter out staged cards from display during selection
+  const visibleHand = isSelectionStep && onToggleStage
+    ? getPlayerHand(handPlayer).filter(c => !stagedDiscardIds.includes(c.id))
+    : getPlayerHand(handPlayer);
+  const visibleCount = isSelectionStep && onToggleStage
+    ? visibleHand.length
+    : getPlayerHandCount(handPlayer);
   return (
     <div
       className="rounded-xl border p-4"
@@ -39,7 +50,7 @@ export default function PlayerHand({
     >
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-cinzel text-sm font-semibold tracking-wider" style={{ color: 'oklch(0.60 0.05 78)' }}>
-          {isMultiplayer && !isMyTurn ? `${handPlayer.name} — ` : ''}РЪКА ({getPlayerHandCount(handPlayer)}/{isMyTurn ? effectiveNabor : handPlayer.stats.nabor})
+          {isMultiplayer && !isMyTurn ? `${handPlayer.name} — ` : ''}РЪКА ({visibleCount}/{isMyTurn ? effectiveNabor : handPlayer.stats.nabor})
           {needsDiscard && <span className="ml-2 text-red-400">— изчисти {getPlayerHandCount(player) - effectiveNabor}</span>}
           {isPetkoSelection && <span className="ml-2" style={{ color: '#fca5a5' }}>— запазваш 2</span>}
         </h3>
@@ -66,11 +77,13 @@ export default function PlayerHand({
         )}
       </div>
 
-      {getPlayerHandCount(handPlayer) === 0 ? (
-        <p className="font-source text-sm italic" style={{ color: 'oklch(0.45 0.03 65)' }}>Ръката е празна</p>
+      {visibleCount === 0 ? (
+        <p className="font-source text-sm italic" style={{ color: 'oklch(0.45 0.03 65)' }}>
+          {isSelectionStep && stagedDiscardIds.length > 0 ? 'Всички карти са маркирани за изчистване' : 'Ръката е празна'}
+        </p>
       ) : (
         <div className="flex flex-wrap gap-2">
-          {getPlayerHand(handPlayer).map(card => {
+          {visibleHand.map(card => {
             const isSelected = isMyTurn && state.selectedCards.includes(card.id);
             const isSelectable = isFormingStep && card.type === 'haydut';
             const isDiscardable = isSelectionStep;
@@ -85,6 +98,8 @@ export default function PlayerHand({
                 onClick={() => {
                   if (isSelectable) {
                     dispatch({ type: 'TOGGLE_SELECT_CARD', cardId: card.id });
+                  } else if (isDiscardable && onToggleStage) {
+                    onToggleStage(card.id);
                   } else if (isDiscardable) {
                     dispatch({ type: 'DISCARD_CARD', cardId: card.id });
                   } else if (isRaisableFromHand) {
