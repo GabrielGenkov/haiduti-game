@@ -50,7 +50,10 @@ export default function FormingActions({
             <button
               key={stat}
               disabled={!canImprove}
-              onClick={() => dispatch({ type: 'FORM_GROUP_IMPROVE_STAT', statType: stat })}
+              onClick={() => dispatch(popHaritonForming
+                ? { type: 'POP_HARITON_FORM_GROUP', statType: stat }
+                : { type: 'FORM_GROUP_IMPROVE_STAT', statType: stat }
+              )}
               className="px-3 py-2 rounded-lg font-cinzel text-xs font-semibold border transition-all"
               style={canImprove ? {
                 background: 'oklch(0.28 0.06 148)',

@@ -14,6 +14,7 @@ import { createInitialGameState, calculateScores } from "@shared/gameData";
 import type { GameState } from "@shared/gameData";
 import { applyCommand, buildPlayerView } from "@shared/gameEngine";
 import type { Command } from "@shared/gameEngine";
+import { diagnoseGameState, formatDiagnosticLog, formatDetailedDiagnosticLog } from "@shared/utils/diagnostics";
 
 interface ClientInfo {
   ws: WebSocket;
@@ -29,6 +30,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   /** Authenticated clients */
   private clients = new Map<WebSocket, ClientInfo>();
+
+  /** Per-room command lock to prevent race conditions */
+  private roomLocks = new Map<number, Promise<void>>();
 
   constructor(
     private readonly authService: AuthService,
@@ -213,6 +217,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     await this.eventStoreService.saveInitialState(room.id, gameState);
     this.gameService.setCachedState(room.id, gameState);
 
+    this.logDiagnostics(gameState, `room=${room.id} GAME_START`);
     this.broadcastGameViews(room.id, 'GAME_STARTED', gameState);
   }
 
@@ -225,7 +230,12 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    const roomId = info.roomId;
+    // Serialize commands per room to prevent race conditions (duplicate key errors)
+    await this.withRoomLock(info.roomId, () => this.processAction(client, info, payload));
+  }
+
+  private async processAction(client: WebSocket, info: ClientInfo, payload: Command): Promise<void> {
+    const roomId = info.roomId!;
     let gameState = this.gameService.getCachedState(roomId);
     if (!gameState) {
       const loaded = await this.gameService.loadFromDb(roomId);
@@ -265,6 +275,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     await this.eventStoreService.commitTurn(roomId, payload, events, newState, newRevision);
     this.gameService.setCachedState(roomId, newState);
 
+    this.logDiagnostics(newState, `room=${roomId} rev=${newRevision} ${payload.type}`);
+
     // Broadcast per-player masked views (events included for debugging/future use)
     this.broadcastGameViews(roomId, 'STATE_UPDATE', newState, { version: newRevision, events });
 
@@ -301,6 +313,13 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   // ─── Helpers ───────────────────────────────────────────────
 
+  private async withRoomLock(roomId: number, fn: () => Promise<void>): Promise<void> {
+    const prev = this.roomLocks.get(roomId) ?? Promise.resolve();
+    const next = prev.then(fn, fn);
+    this.roomLocks.set(roomId, next.then(() => {}, () => {}));
+    return next;
+  }
+
   private requireAuth(client: WebSocket): ClientInfo | null {
     const info = this.clients.get(client);
     if (!info) {
@@ -327,6 +346,22 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const viewerIndex = info.seatIndex ?? 0;
       const gameState = buildPlayerView(state, viewerIndex);
       this.send(ws, { type, gameState, ...extra });
+    }
+  }
+
+  // card state logger (development only)
+  private logDiagnostics(state: GameState, label: string): void {
+    if (process.env.NODE_ENV === 'production') return;
+
+    const diag = diagnoseGameState(state);
+    const summary = formatDiagnosticLog(diag, label);
+    const detailed = formatDetailedDiagnosticLog(state, label);
+    if (diag.valid) {
+      this.logger.log(summary);
+      this.logger.verbose(detailed);
+    } else {
+      this.logger.warn(summary);
+      this.logger.warn(detailed);
     }
   }
 

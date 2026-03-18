@@ -1,9 +1,9 @@
 // Side-effect import: register all rules
 import './rules';
 
-import { GameAction } from '../types/action';
-import { GameState } from '../types/state';
-import { dispatchAction } from './rules/rule-dispatcher';
+import { GameAction } from "@shared/types";
+import { GameState } from "@shared/types";
+import { dispatchAction } from "@shared/engine/rules";
 
 // Re-export for backward compatibility (frontend uses this)
 export { getTraitGroupBonusFromTable as getTraitGroupBonus } from './rule-tables';

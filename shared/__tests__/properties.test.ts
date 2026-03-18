@@ -381,10 +381,13 @@ describe('Property-Based Tests', () => {
               }
             }
 
-            // Face-down field cards are null
+            // Face-down field cards are null; empty slots are 'empty'
             for (let fi = 0; fi < view.field.length; fi++) {
               if (!view.fieldFaceUp[fi]) {
-                expect(view.field[fi], `Face-down field[${fi}] should be null`).toBeNull();
+                expect(
+                  view.field[fi] === null || view.field[fi] === 'empty',
+                  `Non-face-up field[${fi}] should be null or 'empty', got: ${JSON.stringify(view.field[fi])}`,
+                ).toBe(true);
               }
             }
           }

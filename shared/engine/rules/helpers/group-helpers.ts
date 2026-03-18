@@ -402,8 +402,9 @@ export function formGroupRaiseEffects(state: GameState, targetCardId: string): E
   const player = state.players[state.currentPlayerIndex];
 
   const targetInField = state.field.find(c => c !== null && c.id === targetCardId);
+  const targetInSideField = state.sideField.find(c => c !== null && c.id === targetCardId);
   const targetInHand = player.hand.find(c => c.id === targetCardId);
-  const targetCard = targetInField || targetInHand;
+  const targetCard = targetInField || targetInSideField || targetInHand;
 
   if (!targetCard) return [];
   if (targetCard.type !== 'voyvoda' && targetCard.type !== 'deyets') return [];
@@ -437,12 +438,20 @@ export function formGroupRaiseEffects(state: GameState, targetCardId: string): E
   const isVoyvoda = targetCard.type === 'voyvoda';
   const raisedZone = isVoyvoda ? 'raisedVoyvodas' : 'raisedDeytsi';
   const wasInField = !!targetInField;
+  const wasInSideField = !!targetInSideField;
 
   if (wasInField) {
     effects.push({
       type: 'MOVE_CARDS',
       cardIds: [targetCardId],
       from: { zone: 'field' },
+      to: { zone: raisedZone, playerIndex: state.currentPlayerIndex },
+    });
+  } else if (wasInSideField) {
+    effects.push({
+      type: 'MOVE_CARDS',
+      cardIds: [targetCardId],
+      from: { zone: 'sideField' },
       to: { zone: raisedZone, playerIndex: state.currentPlayerIndex },
     });
   } else {
