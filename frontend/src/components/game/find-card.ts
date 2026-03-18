@@ -11,5 +11,8 @@ export function findCardById(state: AnyGameState, cardId: string): Card | undefi
   const sideCard = (state.sideField as (Card | null)[])
     .filter((c): c is Card => c != null)
     .find(card => card.id === cardId);
-  return handCard ?? fieldCard ?? sideCard;
+  // Panayot trigger stores card snapshots visible to the beneficiary
+  const panayotCard = state.panayotTrigger?.availableCards
+    ?.find(card => card.id === cardId);
+  return handCard ?? fieldCard ?? sideCard ?? panayotCard;
 }

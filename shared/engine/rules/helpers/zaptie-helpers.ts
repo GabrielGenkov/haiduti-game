@@ -143,21 +143,8 @@ export function buildZaptieEncounterEffects(state: GameState, zaptieCard: Card):
       effects.push({ type: 'MOVE_CARDS', cardIds: faceUpSideFieldIds, from: { zone: 'sideField' }, to: { zone: 'usedCards' } });
     }
 
-    // Update player: revealed, clear hand unless petko/pop
-    if (hasPetko || hasPop) {
-      effects.push({ type: 'UPDATE_PLAYER', playerIndex: state.currentPlayerIndex, updates: { isRevealed: true } });
-    } else {
-      // Clear hand — move all to usedCards
-      if (player.hand.length > 0) {
-        effects.push({
-          type: 'MOVE_CARDS',
-          cardIds: player.hand.map(c => c.id),
-          from: { zone: 'hand', playerIndex: state.currentPlayerIndex },
-          to: { zone: 'usedCards' },
-        });
-      }
-      effects.push({ type: 'UPDATE_PLAYER', playerIndex: state.currentPlayerIndex, updates: { isRevealed: true } });
-    }
+    // Mark player as revealed; hand clearing is handled by defeat resolution pipeline after acknowledge
+    effects.push({ type: 'UPDATE_PLAYER', playerIndex: state.currentPlayerIndex, updates: { isRevealed: true } });
 
     effects.push(
       { type: 'SET_TURN_FLOW', updates: { actionsRemaining: 0, canFormGroup: false } },

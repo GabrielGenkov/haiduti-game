@@ -1,8 +1,8 @@
-import { GameState } from '../../types/state';
-import { ALL_CARDS } from '../../constants/cards';
+import { GameState } from "@shared/types";
+import { ALL_CARDS } from "@shared/constants";
 import { shuffle, createSeededRng } from '../../utils/shuffle';
 import { emitEvent } from '../event-collector';
-import { applyEffects } from '../effects/apply-effect';
+import { applyEffects } from "@shared/engine/effects";
 import type { Effect } from '../effects/types';
 
 export function replenishFieldEffects(state: GameState): Effect[] {
