@@ -82,6 +82,22 @@ export default function Game({ externalState, externalDispatch, localPlayerIndex
   }, [state.currentPlayerIndex]);
 
   if (state.phase === 'scoring') {
+    // If there's a pending decision (e.g. Lyuben end-of-game stat choice), show it before scores
+    if (state.pendingDecision) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center" style={{ background: 'oklch(0.17 0.025 55)' }}>
+          <div className="text-center mb-6">
+            <h2 className="font-cinzel text-xl font-bold" style={{ color: 'oklch(0.72 0.12 78)' }}>
+              Край на играта
+            </h2>
+            <p className="font-source text-sm mt-2" style={{ color: 'oklch(0.55 0.03 65)' }}>
+              Преди финалните резултати...
+            </p>
+          </div>
+          <DecisionOverlay state={state} dispatch={dispatch} />
+        </div>
+      );
+    }
     return <ScoringScreen state={state} onNewGame={() => navigate('/setup')} />;
   }
 

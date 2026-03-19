@@ -5,6 +5,32 @@ import { emitEvent } from '../event-collector';
 import { applyEffects } from "@shared/engine/effects";
 import type { Effect } from '../effects/types';
 
+/**
+ * Find the first player with Lyuben trait but no stat choice, and create a decision.
+ */
+export function lyubenEndOfGameEffects(state: GameState): Effect[] {
+  for (let i = 0; i < state.players.length; i++) {
+    const p = state.players[i];
+    if (p.traits.includes('lyuben') && !p.lyubenStatChoice) {
+      return [
+        {
+          type: 'SET_DECISION',
+          decision: {
+            id: `lyuben-endgame-${i}`,
+            kind: 'stat_choice' as const,
+            ownerPlayerIndex: i,
+            prompt: `${p.name}: Любен Каравелов — избери показател за +1 бонус.`,
+            selectableStats: ['nabor', 'deynost', 'boyna'],
+            context: {},
+          },
+        },
+        { type: 'SET_MESSAGE', message: `${p.name}: Любен Каравелов — избери показател за крайния бонус.` },
+      ];
+    }
+  }
+  return [];
+}
+
 export function replenishFieldEffects(state: GameState): Effect[] {
   const effects: Effect[] = [];
   let field = [...state.field];
@@ -42,6 +68,11 @@ export function replenishFieldEffects(state: GameState): Effect[] {
         { type: 'SET_TURN_FLOW', updates: { deckRotations, phase: 'scoring' } },
         { type: 'SET_MESSAGE', message: 'Играта приключи! Изчисляване на точките...' },
       );
+
+      // Check for pending Lyuben stat choices
+      const intermediate = applyEffects(state, effects);
+      effects.push(...lyubenEndOfGameEffects(intermediate));
+
       return effects;
     }
 

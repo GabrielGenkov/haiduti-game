@@ -92,10 +92,10 @@ export const ALLOWED_COMMANDS: Record<LogicalPhase, readonly ActionType[]> = {
  * Priority: pendingDecision > zaptieTrigger > panayotTrigger > popHaritonForming > turnStep
  */
 export function derivePhase(state: GameState): LogicalPhase {
-  // Game lifecycle takes precedence
+  // Game lifecycle takes precedence (except scoring with pending decision)
   if (state.phase === 'home') return 'home';
   if (state.phase === 'setup') return 'setup';
-  if (state.phase === 'scoring') return 'scoring';
+  if (state.phase === 'scoring' && !state.pendingDecision) return 'scoring';
 
   // Decisions block everything else
   if (state.pendingDecision) {

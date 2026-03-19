@@ -168,6 +168,31 @@ export function finalizeGroupEffects(
   keptCardIds: string[] = []
 ): Effect[] {
   const player = state.players[state.currentPlayerIndex];
+
+  // If called from contribution-choice and player has Rakowski, chain into rakowski_keep decision
+  const hasRakowski = player.traits.includes('rakowski') && !player.isRevealed && context.haydutCardIds.length >= 2;
+  if (hasRakowski && keptCardIds.length === 0) {
+    return [
+      { type: 'SET_DECISION', decision: undefined },
+      { type: 'SET_PENDING_GROUP', pendingGroup: context },
+      {
+        type: 'SET_DECISION',
+        decision: {
+          id: `rakowski-${Date.now()}`,
+          kind: 'card_choice' as const,
+          ownerPlayerIndex: state.currentPlayerIndex,
+          prompt: 'Раковски: избери карта за запазване.',
+          purpose: 'rakowski_keep' as const,
+          selectableCardIds: context.haydutCardIds,
+          minChoices: 1,
+          maxChoices: 1,
+          context: {},
+        },
+      },
+      { type: 'SET_MESSAGE', message: 'Раковски: избери карта от групата за запазване.' },
+    ];
+  }
+
   const haydutSet = new Set(context.haydutCardIds);
   const keptSet = new Set(keptCardIds);
 
@@ -271,33 +296,6 @@ export function finalizeGroupEffects(
     }
   }
 
-  // Check if Lyuben was raised and needs stat choice
-  if (
-    context.purpose === 'raise_card' &&
-    context.targetCardId === 'dey_lyuben'
-  ) {
-    const intermediate = applyEffects(state, effects);
-    const updatedPlayer = intermediate.players[state.currentPlayerIndex];
-    if (!updatedPlayer.lyubenStatChoice) {
-      effects.push(
-        {
-          type: 'SET_DECISION',
-          decision: {
-            id: `lyuben-${Date.now()}`,
-            kind: 'stat_choice',
-            ownerPlayerIndex: state.currentPlayerIndex,
-            prompt: 'Избери показателя за края на играта на Любен Каравелов.',
-            selectableStats: ['nabor', 'deynost', 'boyna'],
-            context: {},
-          },
-        },
-        { type: 'PUSH_NOTIFICATION', text: 'Любен Каравелов: избери показател за крайния бонус.', kind: 'info' },
-        { type: 'SET_MESSAGE', message: 'Любен Каравелов: избери показател за крайния бонус.' },
-      );
-      return effects;
-    }
-  }
-
   effects.push(
     {
       type: 'PUSH_NOTIFICATION',
@@ -339,12 +337,12 @@ export function formGroupImproveEffects(state: GameState, statType: Contribution
     effectiveStrength: validation.effectiveStrength, traitBonus: validation.traitBonus,
   });
 
-  const { discardedIds } = resolveGroupDiscard(player, validation.hayduti, state.selectedCards);
-  const effects: Effect[] = [];
+  const hasRakowski = player.traits.includes('rakowski') && !player.isRevealed && validation.hayduti.length >= 2;
 
-  // During defeat (Pop Hariton forming): discard ALL remaining cards and continue resolution
+  // During defeat (Pop Hariton forming): no Rakowski choice — discard ALL
   if (state.defeatContext) {
-    // Discard group cards
+    const { discardedIds } = resolveGroupDiscard(player, validation.hayduti, state.selectedCards);
+    const effects: Effect[] = [];
     if (discardedIds.length > 0) {
       effects.push({
         type: 'MOVE_CARDS',
@@ -353,7 +351,6 @@ export function formGroupImproveEffects(state: GameState, statType: Contribution
         to: { zone: 'usedCards' },
       });
     }
-    // Discard remaining hand
     const remainingHandIds = player.hand
       .filter(c => !discardedIds.includes(c.id))
       .map(c => c.id);
@@ -375,7 +372,40 @@ export function formGroupImproveEffects(state: GameState, statType: Contribution
     return effects;
   }
 
-  // Normal path
+  // Rakowski: let player choose which card to keep
+  if (hasRakowski) {
+    const pendingGroup: PendingGroupContext = {
+      selectedCardIds: [...state.selectedCards],
+      haydutCardIds: validation.hayduti.map(c => c.id),
+      purpose: 'improve_stat',
+      statType,
+      targetValue,
+      effectiveStrength: validation.effectiveStrength,
+      traitBonus: validation.traitBonus,
+    };
+    return [
+      { type: 'SET_PENDING_GROUP', pendingGroup },
+      {
+        type: 'SET_DECISION',
+        decision: {
+          id: `rakowski-${Date.now()}`,
+          kind: 'card_choice' as const,
+          ownerPlayerIndex: state.currentPlayerIndex,
+          prompt: 'Раковски: избери карта за запазване.',
+          purpose: 'rakowski_keep' as const,
+          selectableCardIds: validation.hayduti.map(c => c.id),
+          minChoices: 1,
+          maxChoices: 1,
+          context: {},
+        },
+      },
+      { type: 'SET_MESSAGE', message: 'Раковски: избери карта от групата за запазване.' },
+    ];
+  }
+
+  // Normal path (no Rakowski)
+  const { discardedIds } = resolveGroupDiscard(player, validation.hayduti, state.selectedCards);
+  const effects: Effect[] = [];
   if (discardedIds.length > 0) {
     effects.push({
       type: 'MOVE_CARDS',
@@ -390,8 +420,7 @@ export function formGroupImproveEffects(state: GameState, statType: Contribution
   );
 
   const bonusMsg = validation.traitBonus > 0 ? ` (бонус +${validation.traitBonus} от Дейци)` : '';
-  const rakowskiMsg = player.traits.includes('rakowski') && !player.isRevealed ? ' Раковски: запазена 1 карта.' : '';
-  effects.push({ type: 'SET_MESSAGE', message: `Подобрен показател "${statType}" до ${targetValue}!${bonusMsg}${rakowskiMsg}` });
+  effects.push({ type: 'SET_MESSAGE', message: `Подобрен показател "${statType}" до ${targetValue}!${bonusMsg}` });
 
   return effects;
 }
@@ -415,6 +444,38 @@ export function formGroupRaiseEffects(state: GameState, targetCardId: string): E
   }
 
   const newTrait = targetCard.type === 'deyets' ? getDeyetsTraitId(targetCard.id) : null;
+  const hasRakowski = player.traits.includes('rakowski') && !player.isRevealed && validation.hayduti.length >= 2;
+
+  // Rakowski: let player choose which card to keep before finalizing
+  if (hasRakowski) {
+    const pendingGroup: PendingGroupContext = {
+      selectedCardIds: [...state.selectedCards],
+      haydutCardIds: validation.hayduti.map(c => c.id),
+      purpose: 'raise_card',
+      targetCardId,
+      effectiveStrength: validation.effectiveStrength,
+      traitBonus: validation.traitBonus,
+    };
+    return [
+      { type: 'SET_PENDING_GROUP', pendingGroup },
+      {
+        type: 'SET_DECISION',
+        decision: {
+          id: `rakowski-${Date.now()}`,
+          kind: 'card_choice' as const,
+          ownerPlayerIndex: state.currentPlayerIndex,
+          prompt: 'Раковски: избери карта за запазване.',
+          purpose: 'rakowski_keep' as const,
+          selectableCardIds: validation.hayduti.map(c => c.id),
+          minChoices: 1,
+          maxChoices: 1,
+          context: {},
+        },
+      },
+      { type: 'SET_MESSAGE', message: 'Раковски: избери карта от групата за запазване.' },
+    ];
+  }
+
   emitEvent({
     type: 'CARD_RAISED', targetCardId: targetCard.id, targetCardName: targetCard.name,
     targetCardType: targetCard.type as 'voyvoda' | 'deyets', groupCardIds: state.selectedCards,
@@ -479,30 +540,7 @@ export function formGroupRaiseEffects(state: GameState, targetCardId: string): E
   }
 
   const traitMsg = newTrait ? ` Придобита черта: ${targetCard.name}!` : '';
-  const rakowskiMsg = player.traits.includes('rakowski') && !player.isRevealed ? ' Раковски: запазена 1 карта.' : '';
-  effects.push({ type: 'SET_MESSAGE', message: `Издигнат "${targetCard.name}"!${traitMsg}${rakowskiMsg}` });
-
-  // If Lyuben was just raised, prompt for stat choice
-  if (targetCardId === 'dey_lyuben') {
-    const intermediate = applyEffects(state, effects);
-    const updatedPlayer = intermediate.players[state.currentPlayerIndex];
-    if (!updatedPlayer.lyubenStatChoice) {
-      effects.push(
-        {
-          type: 'SET_DECISION',
-          decision: {
-            id: `lyuben-${Date.now()}`,
-            kind: 'stat_choice',
-            ownerPlayerIndex: state.currentPlayerIndex,
-            prompt: 'Избери показателя за края на играта на Любен Каравелов.',
-            selectableStats: ['nabor', 'deynost', 'boyna'],
-            context: {},
-          },
-        },
-        { type: 'SET_MESSAGE', message: 'Любен Каравелов: избери показател за крайния бонус.' },
-      );
-    }
-  }
+  effects.push({ type: 'SET_MESSAGE', message: `Издигнат "${targetCard.name}"!${traitMsg}` });
 
   return effects;
 }

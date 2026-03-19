@@ -3,6 +3,7 @@ import { GameAction } from '../../../types/action';
 import { getTraitGroupBonusFromTable } from '../../rule-tables';
 import { getGroupStrength } from '../../../utils/groups';
 import { replenishFieldEffects } from '../helpers/field-helpers';
+import { lyubenEndOfGameEffects } from '../../helpers/replenish-field';
 import { continueDefeatResolutionEffects } from '../helpers/defeat-helpers';
 import { finalizeGroupEffects, getDeyetsTraitId } from '../helpers/group-helpers';
 import { buildZaptieEncounterEffects } from '../helpers/zaptie-helpers';
@@ -227,12 +228,21 @@ registerRule({
 
     emitEvent({ type: 'DECISION_RESOLVED', decisionKind: decision.kind, decisionId: decision.id });
 
-    return [
+    const ownerIndex = decision.ownerPlayerIndex;
+    const effects: Effect[] = [
       { type: 'SET_DECISION', decision: undefined },
-      { type: 'UPDATE_PLAYER', playerIndex: state.currentPlayerIndex, updates: { lyubenStatChoice: statType } },
+      { type: 'UPDATE_PLAYER', playerIndex: ownerIndex, updates: { lyubenStatChoice: statType } },
       { type: 'PUSH_NOTIFICATION', text: `Любен Каравелов ще повиши ${statType} в края на играта.`, kind: 'success' as const },
-      { type: 'SET_MESSAGE', message: `Любен Каравелов ще повиши ${statType} в края на играта.` },
+      { type: 'SET_MESSAGE', message: `Любен Каравелов: +1 ${statType}.` },
     ];
+
+    // If in scoring phase, check for more players needing Lyuben choice
+    if (state.phase === 'scoring') {
+      const intermediate = applyEffects(state, effects);
+      effects.push(...lyubenEndOfGameEffects(intermediate));
+    }
+
+    return effects;
   },
 });
 
