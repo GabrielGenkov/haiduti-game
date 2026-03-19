@@ -7,12 +7,6 @@ export interface GroupBonusRule {
   bonus: number;
 }
 
-export interface RaiseBonusRule {
-  id: DeyetsTraitId;
-  applies: (player: Player, hayduti: Card[]) => boolean;
-  bonus: number;
-}
-
 export interface ScoreRule {
   id: DeyetsTraitId;
   applyStats?: (stats: PlayerStats, player: Player) => PlayerStats;
@@ -58,24 +52,6 @@ export const GROUP_BONUS_RULES: GroupBonusRule[] = [
   },
 ];
 
-export const RAISE_BONUS_RULES: RaiseBonusRule[] = [
-  {
-    id: 'hristo_botev',
-    applies: () => true,
-    bonus: 2,
-  },
-  {
-    id: 'lyuben',
-    applies: () => true,
-    bonus: 1,
-  },
-  {
-    id: 'rayna',
-    applies: (_player, hayduti) => hayduti.length >= 3,
-    bonus: 1,
-  },
-];
-
 export function getTraitGroupBonusFromTable(
   player: Player,
   hayduti: Card[],
@@ -84,16 +60,6 @@ export function getTraitGroupBonusFromTable(
   let bonus = 0;
   for (const rule of GROUP_BONUS_RULES) {
     if (player.traits.includes(rule.id) && rule.applies(player, hayduti, statType)) {
-      bonus += rule.bonus;
-    }
-  }
-  return bonus;
-}
-
-export function getTraitRaiseBonusFromTable(player: Player, hayduti: Card[]): number {
-  let bonus = 0;
-  for (const rule of RAISE_BONUS_RULES) {
-    if (player.traits.includes(rule.id) && rule.applies(player, hayduti)) {
       bonus += rule.bonus;
     }
   }

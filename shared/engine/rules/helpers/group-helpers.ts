@@ -3,7 +3,7 @@ import { Card, ContributionType, DeyetsTraitId } from '../../../types/card';
 import { Player } from '../../../types/player';
 import { canFormGroupByContribution, canFormGroupByColor, getGroupStrength, getGroupContributions } from '../../../utils/groups';
 import { getUpgradeCost, getNextStatValue, getMaxReachableStatValue } from '../../../utils/stats';
-import { getTraitGroupBonusFromTable, getTraitRaiseBonusFromTable } from '../../rule-tables';
+import { getTraitGroupBonusFromTable } from '../../rule-tables';
 import { replenishFieldEffects } from './field-helpers';
 import { continueDefeatResolutionEffects } from './defeat-helpers';
 import { applyEffects } from '../../effects/apply-effect';
@@ -108,23 +108,35 @@ export function validateGroupForRaise(
   }
 
   const baseStrength = getGroupStrength(hayduti);
-  const traitBonus = getTraitRaiseBonusFromTable(player, hayduti);
+  const byContribution = canFormGroupByContribution(hayduti);
+  const byColor = canFormGroupByColor(hayduti);
+
+  if (!byContribution && !byColor) {
+    return { valid: false, hayduti, baseStrength, traitBonus: 0, effectiveStrength: baseStrength, byContribution, byColor, errorMessage: 'Невалидна група!' };
+  }
+
+  // Determine valid contribution types for bonus calculation
+  const validContributions: ContributionType[] = byContribution
+    ? [byContribution]
+    : getGroupContributions(hayduti);
+
+  // Pick the contribution type that gives the best bonus
+  let bestBonus = 0;
+  for (const contribution of validContributions) {
+    const bonus = getTraitGroupBonusFromTable(player, hayduti, contribution);
+    if (bonus > bestBonus) bestBonus = bonus;
+  }
+
+  const traitBonus = bestBonus;
   const effectiveStrength = baseStrength + traitBonus;
 
   const cost = targetCard.cost ?? 999;
   if (effectiveStrength < cost) {
     return {
       valid: false, hayduti, baseStrength, traitBonus, effectiveStrength,
-      byContribution: null, byColor: null,
+      byContribution, byColor,
       errorMessage: `Недостатъчна сила! Нужна: ${cost}, имаш: ${effectiveStrength}${traitBonus > 0 ? ` (базова ${baseStrength} + бонус ${traitBonus})` : ''}`,
     };
-  }
-
-  const byContribution = canFormGroupByContribution(hayduti);
-  const byColor = canFormGroupByColor(hayduti);
-
-  if (!byContribution && !byColor) {
-    return { valid: false, hayduti, baseStrength, traitBonus, effectiveStrength, byContribution, byColor, errorMessage: 'Невалидна група!' };
   }
 
   return { valid: true, hayduti, baseStrength, traitBonus, effectiveStrength, byContribution, byColor };

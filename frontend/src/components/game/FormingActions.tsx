@@ -80,6 +80,7 @@ export default function FormingActions({
 
         {!popHaritonForming && raisableFromField.map(card => {
           const canRaise = maxRaiseStrength >= (card.cost ?? 999);
+          const raiseBonus = maxRaiseStrength - baseGroupStrength;
           return (
             <button
               key={card.id}
@@ -98,6 +99,7 @@ export default function FormingActions({
               }}
             >
               {card.type === 'voyvoda' ? '🏴' : '📜'} {card.name.slice(0, 12)} ({card.cost})
+              {raiseBonus > 0 && <span className="ml-1 text-yellow-400">+{raiseBonus}</span>}
             </button>
           );
         })}
